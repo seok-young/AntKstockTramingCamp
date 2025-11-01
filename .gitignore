@@ -1,0 +1,13 @@
+.env
+
+
+# mysql_data
+mysql_data/
+
+
+
+# docker
+docker-compose.yml
+Dockerfile
+
+requirements.txt
