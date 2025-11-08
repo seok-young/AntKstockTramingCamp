@@ -1,10 +1,9 @@
+# config
 .env
-
+config.py
 
 # mysql_data
 mysql_data/
-
-
 
 # docker
 docker-compose.yml
