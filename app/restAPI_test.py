@@ -1,3 +1,4 @@
+from datetime import datetime
 import requests
 import json
 from core.config import settings
@@ -47,10 +48,77 @@ def fn_ka10086(token, data, cont_yn='N', next_key=''):
 	# 3. http POST 요청
 	response = requests.post(url, headers=headers, json=data)
 
-	# 4. 응답 상태 코드와 데이터 출력
-	print('Code:', response.status_code)
-	print('Header:', json.dumps({key: response.headers.get(key) for key in ['next-key', 'cont-yn', 'api-id']}, indent=4, ensure_ascii=False))
-	print('Body:', json.dumps(response.json(), indent=4, ensure_ascii=False))  
+	if response.status_code != 200:
+		print(f"Error: HTTP {response.status_code}")
+
+	else:
+		res_json = response.json()
+		print('Response JSON:', json.dumps(res_json, default=str, indent=4, ensure_ascii=False))
+		daily_data = res_json.get('daly_stkpc', [])
+		print('Daily Data:', daily_data)
+		# 4. 응답 상태 코드와 데이터 출력
+		processed_data = []
+		for day in daily_data:
+			print('Day Data:', day)
+			processed_data.append({
+			'stock_id': 1,  # 예시, 실제 stock_id에 맞춰서
+			'date': day['date'],  # 'YYYYMMDD' -> 필요하면 datetime 변환
+			'open': abs(int(day['open_pric'])),   # 문자열로 +나 - 붙어있으니 int 변환 후 abs
+			'high': abs(int(day['high_pric'])),
+			'low': abs(int(day['low_pric'])),
+			'close': abs(int(day['close_pric'])),
+			'volume': int(day['trde_qty']),
+			'created_at': datetime.now().isoformat(),
+			'updated_at': datetime.now().isoformat(),
+		})
+		print('Code:', response.status_code)
+		print('Header:', json.dumps({key: response.headers.get(key) for key in ['next-key', 'cont-yn', 'api-id']}, indent=4, ensure_ascii=False))
+		print('Body:', json.dumps(response.json(), indent=4, ensure_ascii=False))  
+		print('Processed Data:', json.dumps(processed_data,default=str, indent=4, ensure_ascii=False))
+
+def get_1year_close_prices(token, stk_cd, qry_dt):
+    url = 'https://api.kiwoom.com/api/dostk/mrkcond'
+    headers = {
+        'Content-Type': 'application/json;charset=UTF-8',
+        'authorization': f'Bearer {token}',
+        'api-id': 'ka10086',
+    }
+    close_prices = []
+    cont_yn = 'N'
+    next_key = ''
+    
+    while True:
+        headers['cont-yn'] = cont_yn
+        headers['next-key'] = next_key
+        
+        data = {
+            'stk_cd': stk_cd,
+            'qry_dt': qry_dt,
+            'indc_tp': '0'  # 0: 수량, 1: 금액(백만원) - 종가 수량 기준
+        }
+        
+        response = requests.post(url, headers=headers, json=data)
+        if response.status_code != 200:
+            print(f"Error: HTTP {response.status_code}")
+            break
+        
+        res_json = response.json()
+        daily_data = res_json.get('daly_stkpc', [])
+        
+        for day in daily_data:
+            close_prices.append({
+                'date': day['date'],
+                'close_pric': day['close_pric']
+            })
+        
+        cont_yn = response.headers.get('cont-yn', 'N')
+        next_key = response.headers.get('next-key', '')
+        
+        if cont_yn != 'Y' or len(close_prices) >= 250:
+            break
+    
+    return close_prices[:250]
+
 
 
 # 실행 구간
@@ -63,8 +131,9 @@ if __name__ == '__main__':
 	}
 
 	params_price = {
+
 		'stk_cd': '005930', # 종목코드 거래소별 종목코드 (KRX:039490,NXT:039490_NX,SOR:039490_AL)
-		'qry_dt': '20251107', # 조회일자 YYYYMMDD
+		'qry_dt': '20251119', # 조회일자 YYYYMMDD
 		'indc_tp': '0', # 표시구분 0:수량, 1:금액(백만원) 
 		}
 
@@ -74,4 +143,7 @@ if __name__ == '__main__':
 	except Exception as e:
 		print('Exception 발생:', e)
 
+
 	fn_ka10086(token=access_token, data=params_price)
+
+	

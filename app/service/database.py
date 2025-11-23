@@ -5,11 +5,12 @@ import pandas as pd
 
 from app.core.config import settings
 
-MYSQL_USER = settings.mysql_user
-MYSQL_PASSWORD = settings.mysql_password
+MYSQL_USER = settings.MYSQL_USER
+MYSQL_PASSWORD = settings.MYSQL_PASSWORD
 MYSQL_HOST = "ant-mysql"
-MYSQL_PORT = settings.mysql_port
-MYSQL_DB = settings.mysql_database
+# MYSQL_HOST = "127.0.0.1"
+MYSQL_PORT = settings.MYSQL_PORT
+MYSQL_DB = settings.MYSQL_DATABASE
 
 DATABASE_URL = settings.database_url
 
