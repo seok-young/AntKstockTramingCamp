@@ -4,7 +4,7 @@ import os
 import traceback
 
 from app.core.config import settings
-from app.model import Stock
+from app.model import Stock,ETF
 from app.service.database import SessionLocal,Base,engine
 
 def load_csv_to_dataframe(file_path):
@@ -53,6 +53,29 @@ def save_to_db(df):
         session.close()
 
 
+def save_to_db_etf(df):
+    Base.metadata.create_all(bind=engine)
+    session = SessionLocal()
+    try:
+        for _, row in df.iterrows():
+            etf = ETF(
+                symbol_origin=row['symbol_origin'],
+                symbol=row['symbol'],
+                name_kor=row['name_kor'],
+                date_listing=row['date_listing'],
+                base_market_type=row['base_market_type'],
+                base_asset_type=row['base_asset_type'],
+                shares_outstanding=row['shares_outstanding']
+            )
+            session.add(etf)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        print(f"Error inserting data into database: {e}")
+        traceback.print_exc()
+    finally:
+        session.close()
+
 def preprocess_dataframe(df):
     original_cols = [
         '표준코드','단축코드','한글 종목명','한글 종목약명',
@@ -75,4 +98,28 @@ def preprocess_dataframe(df):
     ]
     df = df[final_columns]
     # df = df.dropna()
+    return df
+
+def preprocess_dataframe_ETF(df):
+    original_cols = [
+        '표준코드','단축코드','한글종목명','한글종목약명',
+        '영문종목명','상장일','기초지수명','지수산출기관',
+        '추적배수','복제방법','기초시장분류','기초자산분류',
+        '상장좌수','운용사','CU수량','총보수','과세유형'
+    ]
+
+    new_cols = [
+        'symbol_origin', 'symbol','name_kor','short_name_kor',
+        'name_en','date_listing', 'base_index_name','index_provider',
+        'leverage_type','replication_method','base_market_type','base_asset_type',
+        'shares_outstanding','asset_manager', 'creation_unit', 'expense_ratio', 'tax_type'
+    ]
+    df.columns = new_cols
+    final_columns = [
+        'symbol_origin', 'symbol','name_kor',
+        "date_listing",'base_market_type','base_asset_type',
+        'shares_outstanding', 
+    ]
+
+    df=df[final_columns]
     return df

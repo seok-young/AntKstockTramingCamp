@@ -2,35 +2,70 @@
 
 import os
 import sys
+import pandas as pd
 
-# 프로젝트 경로 추가 (scripts 폴더에서 app 폴더 import 가능하게)
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+BASE_DIR = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
 from app.service.load_csv import (
     load_csv_to_dataframe,
     preprocess_dataframe,
-    save_to_db
+    preprocess_dataframe_ETF,
+    save_to_db,
+    save_to_db_etf
 )
 
-FILE_PATH = "/code/app/data_0233_20251108.csv"
+from app.service.load_watchlist import (
+    make_watchlist_df,
+    save_to_db_watchlist
+)
+
+
+if BASE_DIR not in sys.path:
+    sys.path.append(BASE_DIR)
+
+FILE_PATH = os.path.join(BASE_DIR, "data_0233_20251108.csv")
+FILE_PATH_ETF = os.path.join(BASE_DIR, "etf_data_1606_20251123.csv")
 
 
 def main():
-    print("CSV 로드 중...")
-    df = load_csv_to_dataframe(FILE_PATH)
+    '''
+    stock, etf 데이터 로드 및 DB 저장
+    '''
+    # print("CSV 로드 중...")
+    # df = load_csv_to_dataframe(FILE_PATH)
+    # df_etf = load_csv_to_dataframe(FILE_PATH_ETF)
 
-    if df is None:
-        print("CSV 로드 실패")
-        return
+    # if df_etf is None:
+        # print("CSV 로드 실패")
+        # return
 
-    print("전처리 중...")
-    df = preprocess_dataframe(df)
+    # print(df.head().to_string())
+    # print("전처리 중...")
+    # df = preprocess_dataframe(df)
+    # df_etf = preprocess_dataframe_ETF(df_etf)
 
-    print("DB 저장 중...")
-    save_to_db(df)
+    # print("DB 저장 중...")
+    # save_to_db_etf(df_etf)
 
-    print("작업 완료!")
+    # print("작업 완료!")
 
+    '''
+    watchlist 데이터 로드 및 DB 저장
+    '''
+    Watchlist_stock =['005930','000660','034730','001500','000270','035420','035720','207940','066570','005490',
+                    '006400','051910','012330','009540','018880','105560','055550','086790','032830','034220',
+                    '009150','009830','051900','096770','086280','010950','097950','090430','033780','011170',
+                    '323410','247540','112040','377300','035760','086520','196170','263750','011200','357780'
+                    ]
+    Watchlist_etf =['069500','102110','229200','143860','091160','091170','228800','469790','360750','132030',
+                    ]
+    watchlist_df = make_watchlist_df(Watchlist_stock,'stock')
+    save_to_db_watchlist(watchlist_df)
+    watchlist_df_etf = make_watchlist_df(Watchlist_etf,'etf')
+    save_to_db_watchlist(watchlist_df_etf)
+    
 
 if __name__ == "__main__":
     main()
