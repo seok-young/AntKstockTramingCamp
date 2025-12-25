@@ -41,11 +41,11 @@ class ETF(Base):
 # 관심종목 모델
 class Watchlist(Base):
 
-    __tablename__ = 'watchlists'
+    __tablename__ = 'watchlist'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     asset_type = Column(String(20))  # 'stock' or 'etf'
-    asset_id = Column(BigInteger)  # references Stock.id or ETF.id
+    asset_id = Column(String(20))  # references Stock.id or ETF.id
     is_watching = Column(Boolean, default=1)  # 1 for active, 0 for inactive
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     removed_at = Column(DateTime, nullable=True)

@@ -1,7 +1,7 @@
 from datetime import datetime
 import requests
 import json
-from core.config import settings
+from app.core.config import settings
 
 # 접근토큰 발급
 def fn_au10001(data):
