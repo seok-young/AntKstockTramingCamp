@@ -6,6 +6,8 @@ import pandas as pd
 import os
 
 from app.core.config import settings
+from app.service.database import SessionLocal,Base,engine
+from app.model import Watchlist as watchlist
 
 
 # 접근토큰 발급
@@ -79,7 +81,7 @@ def collect_12months_data(token, stk_cd):
             'indc_tp': '0',
         }
         
-        # fn_ka10086 내부에서 headers에 cont_yn과 next_key를 잘 넣고 있는지 확인하세요.
+  
         res_json, cont_yn_res, next_key_res = fn_ka10086(token, params, cont_yn, next_key)
         
         if res_json is None:
@@ -101,10 +103,24 @@ def collect_12months_data(token, stk_cd):
         else:
             break # 더 이상 데이터가 없으면 내부 루프 종료
         
-        # 날짜를 20일 전으로 이동 (중복 데이터가 발생할 수 있으므로 나중에 pandas로 drop_duplicates 권장)
+       
         current_date -= timedelta(days=20)
         
     return all_data
+
+# 관심 종목 DB 조회 -> 리스트
+def get_interest_stocksID():
+    session = SessionLocal()
+    try:
+        asset_ids = session.query(watchlist.asset_id).filter(watchlist.is_watching == True).all()
+        asset_id_list = [row[0] for row in asset_ids]
+        return asset_id_list
+    except Exception as e:
+        print("DB 조회 중 오류 발생:", e)
+        return []
+    finally:
+        session.close()
+
 
 if __name__ == '__main__':
 
@@ -114,21 +130,27 @@ if __name__ == '__main__':
 		'secretkey': settings.SECRET_KEY
 	}
     ACCESS_TOKEN = fn_au10001(params_token)
-    STOCK_CODE = '005930'  # 예: 삼성전자
 
-    prices = collect_12months_data(ACCESS_TOKEN, STOCK_CODE)
+    # 종목코드 설정
+    stockID_list=get_interest_stocksID()
+    for stockID in stockID_list:
+        STOCK_CODE = stockID  # 예: 삼성전자
 
-    if prices:
-        prices_df = pd.DataFrame(prices)
-        if 'date' in prices_df.columns:
-            prices_df= prices_df.drop_duplicates(subset='date', keep='first')
-            prices_df = prices_df.sort_values(by='date').reset_index(drop=True)
+        prices = collect_12months_data(ACCESS_TOKEN, STOCK_CODE)
 
-    save_path = '/code/app/price_data'
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
+        if prices:
+            prices_df = pd.DataFrame(prices)
+            if 'date' in prices_df.columns:
+                prices_df= prices_df.drop_duplicates(subset='date', keep='first')
+                prices_df = prices_df.sort_values(by='date').reset_index(drop=True)
+
+        save_path = '/code/app/price_data'
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
 
 
-    save_path = f'{save_path}/data_{STOCK_CODE}_{datetime.now().strftime("%Y%m%d")}.csv'
-    prices_df.to_csv(save_path, index=False)
-    print(f"✅ 파일 저장 완료: {os.path.abspath(save_path)}")
+        save_path = f'{save_path}/data_{STOCK_CODE}_{datetime.now().strftime("%Y%m%d")}.csv'
+        prices_df.to_csv(save_path, index=False)
+        print(f"✅ 파일 저장 완료: {os.path.abspath(save_path)}")
+    
+        time.sleep(0.5)

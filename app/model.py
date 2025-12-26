@@ -1,4 +1,5 @@
-from sqlalchemy import BigInteger, Column, Integer, String,DateTime,Boolean,func
+
+from sqlalchemy import BigInteger, Column, Integer, String,DateTime,Date,Boolean,func,Float,UniqueConstraint
 from app.service.database import Base
 
 # 주식종목 모델
@@ -49,3 +50,23 @@ class Watchlist(Base):
     is_watching = Column(Boolean, default=1)  # 1 for active, 0 for inactive
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     removed_at = Column(DateTime, nullable=True)
+
+# 주가 모델
+class DailyPrice(Base):
+
+    __tablename__ = 'daily_price'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    stock_id = Column(String(10), nullable=False) # FK to Stock.id or ETF.id
+    date = Column(Date, nullable=False)
+    open_price = Column(Float)
+    high_price = Column(Float)
+    low_price = Column(Float)
+    close_price = Column(Float)
+    trde_qty = Column(BigInteger) # 거래량
+    created_at = Column(DateTime, server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('stock_id','date', name = '_stock_date_uc'),
+    )

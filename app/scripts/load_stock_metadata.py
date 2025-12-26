@@ -4,11 +4,7 @@ import os
 import sys
 import pandas as pd
 
-
-BASE_DIR = os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__))
-)
-from app.service.load_csv import (
+from app.scripts.load_csv import (
     load_csv_to_dataframe,
     preprocess_dataframe,
     preprocess_dataframe_ETF,
@@ -16,9 +12,14 @@ from app.service.load_csv import (
     save_to_db_etf
 )
 
-from app.service.load_watchlist import (
+from app.scripts.load_watchlist import (
     make_watchlist_df,
     save_to_db_watchlist
+)
+
+
+BASE_DIR = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
 )
 
 

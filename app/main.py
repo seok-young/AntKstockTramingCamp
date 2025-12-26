@@ -2,7 +2,7 @@ from typing import Union
 import os
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from app.service.load_csv import load_csv_to_dataframe, preprocess_dataframe
+from app.scripts.load_csv import load_csv_to_dataframe, preprocess_dataframe
 from app.service.database import SessionLocal,Base,engine
 from app.model import Stock
 
