@@ -18,7 +18,11 @@ def list_price_files(directory):
     print(csv_path_list)
 
     return csv_path_list
-    
+
+"""
+    TO-DO : API 호출하여 자동으로 수집하는 로직
+"""
+
 # price_df 만들기
 def price_csv_to_df(path):
     file_name = os.path.basename(path)

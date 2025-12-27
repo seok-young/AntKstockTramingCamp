@@ -1,7 +1,7 @@
 
 from sqlalchemy import (
     BigInteger, Column, Integer, String,Boolean,Float,
-    DateTime,Date,func,UniqueConstraint)
+    DateTime,Date,func,UniqueConstraint,CheckConstraint)
 from app.service.database import Base
 
 # 주식종목 모델
@@ -71,4 +71,33 @@ class DailyPrice(Base):
 
     __table_args__ = (
         UniqueConstraint('stock_id','date', name = '_stock_date_uc'),
+    )
+
+# 지표 모델
+class Analysis(Base):
+
+    __tablename__ = 'analysis'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)    
+    stock_id = Column(String(10), nullable=False)
+    date = Column(Date, nullable=False)
+    close_price = Column(Float)
+    ma5 = Column(Float)
+    ma20 = Column(Float)
+    ma120 = Column(Float)
+    macd = Column(Float)
+    macd_signal = Column(Float)
+    macd_hist = Column(Float)
+    rsi = Column(Float)
+    bb_middle = Column(Float)
+    bb_upper = Column(Float)
+    bb_lower = Column(Float)
+
+    __table_args__ = (
+        UniqueConstraint('stock_id','date', name = '_stock_date_uc'),
+        CheckConstraint('close_price >= 0', name='check_close_price_positive'),
+        CheckConstraint('ma5 >= 0', name='check_ma5_positive'),
+        CheckConstraint('ma20 >= 0', name='check_ma20_positive'),
+        CheckConstraint('ma120 >= 0', name='check_ma120_positive'),
+        CheckConstraint('rsi >= 0 AND rsi <= 100', name='check_rsi_range'),
     )

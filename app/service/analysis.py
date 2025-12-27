@@ -1,12 +1,37 @@
-from app.service.database import SessionLocal,Base,engine
-from datetime import datetime
 import pandas as pd
+import numpy as np
+
+from app.service.database import SessionLocal,Base,engine
+from app.model import Analysis, Watchlist
 
 
-# DB에서 주가 불러오기
+# 관심 종목 리스트 불러오기
+def get_target_stocksList():
+
+    session=SessionLocal()
+    try:
+        watchlist_stocks = session.query(Watchlist.asset_id).filter(Watchlist.is_watching == 1).all()
+        if not watchlist_stocks:
+            print("No Watchlist from DB")
+            return []
+        
+        target_list = [s[0] for s in watchlist_stocks]
+        return target_list
+    except Exception as e:
+        print(f"Error occurred in get_target_stocksList: {e}")
+        return []
+    finally: 
+        session.close()
+    
+    
+    
+
+
+# 처음 DB에서 주가 불러오기
 def get_price(stock_code):
+    # daily_price 테이블의 close_price의 절댓값을 불러옴
     query = f"""
-        SELECT date, close_price
+        SELECT stock_id, date, ABS(close_price) as close_price
         FROM daily_price
         WHERE stock_id = '{stock_code}'
         ORDER BY date ASC
@@ -15,6 +40,11 @@ def get_price(stock_code):
 
     return df
 
+# 주가 불러오기
+"""
+    analysis 테이블에서 가장 최신 데이터를 확인하고 
+    그 이후의 데이터만 수집하도록 필터링해서 조회
+"""
 
 # MA 계산 
 def cal_MA(df):
@@ -75,11 +105,34 @@ def cal_Bollinger_band(df, window=20, num_std=2):
     return df
 
 
+# 처음 analysis 데이터 삽입
+"""
+    analysis 테이블 생성 및
+    초기 데이터 입력
+"""
+def save_analysis_to_DB(df):
+    # nan -> None
+    final_df = df.copy()
+    final_df = final_df.replace({np.nan:None})
+
+    # Base.metadata.create_all(bind=engine)
+    session=SessionLocal()
+    try:
+        data_list = final_df.to_dict(orient='records')
+        session.bulk_insert_mappings(Analysis, data_list)
+        session.commit()
+        print("Success Uploading analysis_df to DB")
+    except Exception as e:
+        session.rollback()
+        print(f"Error : {e}")
+    finally:
+        session.close()
+    return
+
 # analysis 데이터 삽입
+"""
+    원래 있는 analysis 테이블에 
+    가장 최신 데이터 이후의 데이터만 필터링하여 추가로 입력
+"""
 
 
-# 매수조건 비교
-
-# 매도 조건 비교
-
-# recommend 데이터 삽입
