@@ -1,5 +1,7 @@
 
-from sqlalchemy import BigInteger, Column, Integer, String,DateTime,Date,Boolean,func,Float,UniqueConstraint
+from sqlalchemy import (
+    BigInteger, Column, Integer, String,Boolean,Float,
+    DateTime,Date,func,UniqueConstraint)
 from app.service.database import Base
 
 # 주식종목 모델
