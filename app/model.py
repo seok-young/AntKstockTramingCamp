@@ -2,6 +2,8 @@
 from sqlalchemy import (
     BigInteger, Column, Integer, String,Boolean,Float,
     DateTime,Date,func,UniqueConstraint,CheckConstraint)
+from datetime import datetime
+
 from app.service.database import Base
 
 # 주식종목 모델
@@ -78,12 +80,13 @@ class Analysis(Base):
 
     __tablename__ = 'analysis'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)    
+    id = Column(Integer, primary_key=True, autoincrement=True)
     stock_id = Column(String(10), nullable=False)
     date = Column(Date, nullable=False)
     close_price = Column(Float)
     ma5 = Column(Float)
     ma20 = Column(Float)
+    ma60 = Column(Float)
     ma120 = Column(Float)
     macd = Column(Float)
     macd_signal = Column(Float)
@@ -100,4 +103,23 @@ class Analysis(Base):
         CheckConstraint('ma20 >= 0', name='check_ma20_positive'),
         CheckConstraint('ma120 >= 0', name='check_ma120_positive'),
         CheckConstraint('rsi >= 0 AND rsi <= 100', name='check_rsi_range'),
+    )
+
+# 추천 모델
+class Recommendation(Base):
+
+    __tablename__ = 'recommendation'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    stock_id = Column(String(10), nullable=False)
+    analysis_id = Column(String(10), nullable=False)
+    signal_type = Column(String(10), nullable=False)
+    strategy_name = Column(String(50), default='BASIC')
+    base_date = Column(Date, index=True)
+    price = Column(Float)
+    is_sent = Column(Boolean, default=0)
+    create_at= Column(DateTime, default=datetime.now)
+
+    __table_args__ = (
+        UniqueConstraint('stock_id', 'base_date', 'signal_type', name='_stock_signal_uc'),
     )

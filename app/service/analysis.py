@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import datetime as dt
 
 from app.service.database import SessionLocal,Base,engine
 from app.model import Analysis, Watchlist
@@ -23,8 +24,6 @@ def get_target_stocksList():
     finally: 
         session.close()
     
-    
-    
 
 
 # 처음 DB에서 주가 불러오기
@@ -42,6 +41,7 @@ def get_price(stock_code):
 
 # 주가 불러오기
 """
+    TO-DO
     analysis 테이블에서 가장 최신 데이터를 확인하고 
     그 이후의 데이터만 수집하도록 필터링해서 조회
 """
@@ -53,6 +53,7 @@ def cal_MA(df):
 
     df['ma5'] = df['close_price'].rolling(window=5).mean()
     df['ma20'] = df['close_price'].rolling(window=20).mean()
+    df['ma60'] = df['close_price'].rolling(window=60).mean()
     df['ma120'] = df['close_price'].rolling(window=120).mean()
 
     return df
@@ -131,8 +132,10 @@ def save_analysis_to_DB(df):
 
 # analysis 데이터 삽입
 """
+    TO-DO
     원래 있는 analysis 테이블에 
     가장 최신 데이터 이후의 데이터만 필터링하여 추가로 입력
 """
+
 
 
