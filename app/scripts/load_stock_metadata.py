@@ -17,6 +17,8 @@ from app.scripts.load_watchlist import (
     save_to_db_watchlist
 )
 
+from app.service.notify import send_recommendation_alerts
+
 
 BASE_DIR = os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))
@@ -55,17 +57,19 @@ def main():
     # '''
     # watchlist 데이터 로드 및 DB 저장
     # '''
-    Watchlist_stock =['005930','000660','034730','001500','000270','035420','035720','207940','066570','005490',
-                    '006400','051910','012330','009540','018880','105560','055550','086790','032830','034220',
-                    '009150','009830','051900','096770','086280','010950','097950','090430','033780','011170',
-                    '323410','247540','112040','377300','035760','086520','196170','263750','011200','357780'
-                    ]
-    Watchlist_etf =['069500','102110','229200','143860','091160','091170','228800','469790','360750','132030',
-                    ]
-    watchlist_df = make_watchlist_df(Watchlist_stock,'Stock')
-    save_to_db_watchlist(watchlist_df)
-    watchlist_df_etf = make_watchlist_df(Watchlist_etf,'ETF')
-    save_to_db_watchlist(watchlist_df_etf)
+    # Watchlist_stock =['005930','000660','034730','001500','000270','035420','035720','207940','066570','005490',
+    #                 '006400','051910','012330','009540','018880','105560','055550','086790','032830','034220',
+    #                 '009150','009830','051900','096770','086280','010950','097950','090430','033780','011170',
+    #                 '323410','247540','112040','377300','035760','086520','196170','263750','011200','357780'
+    #                 ]
+    # Watchlist_etf =['069500','102110','229200','143860','091160','091170','228800','469790','360750','132030',
+    #                 ]
+    # watchlist_df = make_watchlist_df(Watchlist_stock,'Stock')
+    # save_to_db_watchlist(watchlist_df)
+    # watchlist_df_etf = make_watchlist_df(Watchlist_etf,'ETF')
+    # save_to_db_watchlist(watchlist_df_etf)
+
+    send_recommendation_alerts()
     
 
 if __name__ == "__main__":

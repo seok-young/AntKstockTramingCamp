@@ -2,7 +2,7 @@ import pandas as pd
 
 
 from app.service.database import SessionLocal,Base,engine
-from app.model import Stock,ETF, Watchlist
+from app.model import Watchlist
 from app.service.database import SessionLocal,Base,engine
 
 '''
