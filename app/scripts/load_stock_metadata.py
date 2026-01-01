@@ -39,22 +39,22 @@ def main():
     # df_etf = load_csv_to_dataframe(FILE_PATH_ETF)
 
     # if df_etf is None:
-        # print("CSV 로드 실패")
-        # return
+    #     print("CSV 로드 실패")
+    #     return
 
     # print(df.head().to_string())
     # print("전처리 중...")
     # df = preprocess_dataframe(df)
     # df_etf = preprocess_dataframe_ETF(df_etf)
-
+  
     # print("DB 저장 중...")
     # save_to_db_etf(df_etf)
-
+    # save_to_db(df)
     # print("작업 완료!")
 
-    '''
-    watchlist 데이터 로드 및 DB 저장
-    '''
+    # '''
+    # watchlist 데이터 로드 및 DB 저장
+    # '''
     Watchlist_stock =['005930','000660','034730','001500','000270','035420','035720','207940','066570','005490',
                     '006400','051910','012330','009540','018880','105560','055550','086790','032830','034220',
                     '009150','009830','051900','096770','086280','010950','097950','090430','033780','011170',
@@ -62,9 +62,9 @@ def main():
                     ]
     Watchlist_etf =['069500','102110','229200','143860','091160','091170','228800','469790','360750','132030',
                     ]
-    watchlist_df = make_watchlist_df(Watchlist_stock,'stock')
+    watchlist_df = make_watchlist_df(Watchlist_stock,'Stock')
     save_to_db_watchlist(watchlist_df)
-    watchlist_df_etf = make_watchlist_df(Watchlist_etf,'etf')
+    watchlist_df_etf = make_watchlist_df(Watchlist_etf,'ETF')
     save_to_db_watchlist(watchlist_df_etf)
     
 

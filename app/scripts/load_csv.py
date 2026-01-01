@@ -4,7 +4,7 @@ import os
 import traceback
 
 from app.core.config import settings
-from app.model import Stock,ETF
+from app.model import Ticker
 from app.service.database import SessionLocal,Base,engine
 
 def load_csv_to_dataframe(file_path):
@@ -16,34 +16,20 @@ def load_csv_to_dataframe(file_path):
         return None
 
 def save_to_db(df):
-    # # print("현재 작업 디렉토리:", os.getcwd())
-    # BASE_DIR=os.path.dirname(os.path.abspath(__file__))
-    # CSV_PATH=os.path.join(BASE_DIR, "data_0233_20251108.csv")
-    # df = load_csv_to_dataframe(CSV_PATH)
-    # print("전처리 전 df : " ,df.head())
-    # df = preprocess_dataframe(df)
-    # df['par_value'] = df['par_value'].apply(Stock.parse_par_value)
-    # print("전처리된 데이터프레임 : " ,df.head())
-    # if df is not None:
-    #     print("CSV file loaded successfully:")
-    #     print(df.head())
-    # else:
-    #     print("Failed to load CSV file.")
     Base.metadata.create_all(bind=engine)
     session = SessionLocal()
     try:
         for _, row in df.iterrows():
-            stock = Stock(
+            ticker_stock = Ticker(
                 symbol_origin=row['symbol_origin'],
                 symbol=row['symbol'],
-                name_kor=row['name_kor'],
-                date_listing=row['date_listing'],
+                name_kor=row['name_kor'],                
+                asset_type = 'Stock',
                 market_type=row['market_type'],
-                stock_class=row['stock_class'],
-                par_value=Stock.parse_par_value(row['par_value']),
-                shares_listed=row['shares_listed']
+                date_listing=row['date_listing'],
+                total_shares=row['shares_listed'],
             )
-            session.add(stock)
+            session.add(ticker_stock)
         session.commit()
     except Exception as e:
         session.rollback()
@@ -58,16 +44,16 @@ def save_to_db_etf(df):
     session = SessionLocal()
     try:
         for _, row in df.iterrows():
-            etf = ETF(
+            ticker_etf = Ticker(
                 symbol_origin=row['symbol_origin'],
                 symbol=row['symbol'],
                 name_kor=row['name_kor'],
-                date_listing=row['date_listing'],
-                base_market_type=row['base_market_type'],
-                base_asset_type=row['base_asset_type'],
-                shares_outstanding=row['shares_outstanding']
+                asset_type = 'ETF',
+                market_type=row['base_market_type'],
+                date_listing=row['date_listing'],                
+                total_shares=row['shares_outstanding'],
             )
-            session.add(etf)
+            session.add(ticker_etf)
         session.commit()
     except Exception as e:
         session.rollback()
@@ -93,8 +79,7 @@ def preprocess_dataframe(df):
     df.columns = new_cols
     final_columns = [
         "symbol_origin", "symbol","name_kor",
-        "date_listing", "market_type",
-        "stock_class", "par_value", "shares_listed"
+        "market_type","date_listing","shares_listed"
     ]
     df = df[final_columns]
     # df = df.dropna()

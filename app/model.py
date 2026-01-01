@@ -1,47 +1,28 @@
 
 from sqlalchemy import (
     BigInteger, Column, Integer, String,Boolean,Float,
-    DateTime,Date,func,UniqueConstraint,CheckConstraint)
+    DateTime,Date,func,UniqueConstraint,CheckConstraint,ForeignKey)
 from datetime import datetime
 
 from app.service.database import Base
 
-# 주식종목 모델
-class Stock(Base):
 
-    __tablename__ = 'stocks'
+
+# 투자종목(stock + etf) 모델
+class Ticker(Base):
+
+    __tablename__ = 'ticker'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     symbol_origin = Column(String(20), unique=True, nullable=False)
     symbol = Column(String(20), unique=True)
     name_kor = Column(String(100))
-    date_listing = Column(String(20))
+    asset_type = Column(String(20))
     market_type = Column(String(50))
-    stock_class = Column(String(50))
-    par_value = Column(Integer, nullable=True)
-    shares_listed = Column(BigInteger)
-    is_active = Column(Boolean, default=True)
-
-    def parse_par_value(val):
-        try:
-            return int(val)
-        except (ValueError, TypeError):
-            return None
-
-# ETF종목 모델
-class ETF(Base):
-
-    __tablename__ = 'etfs'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    symbol_origin = Column(String(20), unique=True, nullable=False)
-    symbol = Column(String(20), unique=True)
-    name_kor = Column(String(100))
     date_listing = Column(String(20))
-    base_market_type = Column(String(50))
-    base_asset_type = Column(String(50))
-    shares_outstanding = Column(BigInteger)
+    total_shares = Column(BigInteger)
     is_active = Column(Boolean, default=True)
+
 
 # 관심종목 모델
 class Watchlist(Base):
@@ -50,7 +31,7 @@ class Watchlist(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     asset_type = Column(String(20))  # 'stock' or 'etf'
-    asset_id = Column(String(20))  # references Stock.id or ETF.id
+    ticker_symbol = Column(String(20), ForeignKey('ticker.symbol'))  
     is_watching = Column(Boolean, default=1)  # 1 for active, 0 for inactive
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     removed_at = Column(DateTime, nullable=True)
@@ -61,7 +42,7 @@ class DailyPrice(Base):
     __tablename__ = 'daily_price'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    stock_id = Column(String(10), nullable=False) # FK to Stock.id or ETF.id
+    ticker_symbol = Column(String(10), ForeignKey('ticker.symbol'), nullable=False) 
     date = Column(Date, nullable=False)
     open_price = Column(Float)
     high_price = Column(Float)
@@ -72,7 +53,7 @@ class DailyPrice(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=True)
 
     __table_args__ = (
-        UniqueConstraint('stock_id','date', name = '_stock_date_uc'),
+        UniqueConstraint('ticker_symbol','date', name = '_ticker_date_uc'),
     )
 
 # 지표 모델
@@ -81,7 +62,7 @@ class Analysis(Base):
     __tablename__ = 'analysis'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    stock_id = Column(String(10), nullable=False)
+    ticker_symbol = Column(String(10), ForeignKey('ticker.symbol'), nullable=False) 
     date = Column(Date, nullable=False)
     close_price = Column(Float)
     ma5 = Column(Float)
@@ -97,7 +78,7 @@ class Analysis(Base):
     bb_lower = Column(Float)
 
     __table_args__ = (
-        UniqueConstraint('stock_id','date', name = '_stock_date_uc'),
+        UniqueConstraint('ticker_symbol','date', name = '_ticker_date_uc'),
         CheckConstraint('close_price >= 0', name='check_close_price_positive'),
         CheckConstraint('ma5 >= 0', name='check_ma5_positive'),
         CheckConstraint('ma20 >= 0', name='check_ma20_positive'),
@@ -111,7 +92,7 @@ class Recommendation(Base):
     __tablename__ = 'recommendation'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    stock_id = Column(String(10), nullable=False)
+    ticker_symbol = Column(String(10), ForeignKey('ticker.symbol'), nullable=False) 
     analysis_id = Column(String(10), nullable=False)
     signal_type = Column(String(10), nullable=False)
     strategy_name = Column(String(50), default='BASIC')
@@ -121,5 +102,5 @@ class Recommendation(Base):
     create_at= Column(DateTime, default=datetime.now)
 
     __table_args__ = (
-        UniqueConstraint('stock_id', 'base_date', 'signal_type', name='_stock_signal_uc'),
+        UniqueConstraint('ticker_symbol', 'base_date', 'signal_type', name='_ticker_signal_uc'),
     )

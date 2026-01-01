@@ -15,7 +15,7 @@ def make_watchlist_df(Watchlist,asset_type):
     for stock_code in Watchlist:
         rows.append({
             'asset_type': asset_type,
-            'asset_id': stock_code
+            'ticker_symbol': stock_code
         })
 
     watchlist_df = pd.DataFrame(rows)
@@ -30,7 +30,7 @@ def save_to_db_watchlist(watchlist_df):
         for _, row in watchlist_df.iterrows():
             watchlist = Watchlist(
                 asset_type=row['asset_type'],
-                asset_id=row['asset_id'],
+                ticker_symbol=row['ticker_symbol'],
                 is_watching=True,
                 removed_at=None
             )
