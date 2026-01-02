@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from sqlalchemy import desc
 
-from app.service.database import SessionLocal,Base,engine
+from app.core.database import SessionLocal,Base,engine
 from app.model import Analysis,Recommendation
 
 # analysis 테이블에서 최신 데이터 조회

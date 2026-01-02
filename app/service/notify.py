@@ -1,7 +1,7 @@
 import requests
 
 from app.core.config import settings
-from app.service.database import SessionLocal,Base,engine
+from app.core.database import SessionLocal,Base,engine
 from app.model import Recommendation
 from app.utils.templates import buy_message, no_buy_message
 

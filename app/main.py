@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
 
 from app.scripts.load_csv import load_csv_to_dataframe, preprocess_dataframe
-from app.service.database import SessionLocal,Base,engine
+from app.core.database import SessionLocal,Base,engine
 
 def daily_stock_routine():
     print(f"[{datetime.now()}] 루틴 실행 시작")

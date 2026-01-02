@@ -1,9 +1,9 @@
 import pandas as pd
 
 
-from app.service.database import SessionLocal,Base,engine
+from app.core.database import SessionLocal,Base,engine
 from app.model import Watchlist
-from app.service.database import SessionLocal,Base,engine
+from app.core.database import SessionLocal,Base,engine
 
 '''
 관심종목 데이터 로드 및 DB 저장

@@ -5,7 +5,7 @@ import traceback
 
 from app.core.config import settings
 from app.model import Ticker
-from app.service.database import SessionLocal,Base,engine
+from app.core.database import SessionLocal,Base,engine
 
 def load_csv_to_dataframe(file_path):
     try:

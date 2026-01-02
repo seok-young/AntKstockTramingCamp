@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 
-from app.service.database import SessionLocal,Base,engine
+from app.core.database import SessionLocal,Base,engine
 from app.model import Analysis, Watchlist
 
 

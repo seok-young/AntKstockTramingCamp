@@ -1,4 +1,4 @@
-import requests
+
 import json
 from datetime import datetime, timedelta
 import time
@@ -6,57 +6,9 @@ import pandas as pd
 import os
 
 from app.core.config import settings
-from app.service.database import SessionLocal,Base,engine
-from app.model import Watchlist as watchlist
+from app.core.database import SessionLocal,Base,engine
 
-
-# 접근토큰 발급
-def fn_au10001(data):
-	# 1. 요청할 API URL
-	host = 'https://api.kiwoom.com' # 실전투자
-	endpoint = '/oauth2/token'
-	url =  host + endpoint
-
-	# 2. header 데이터
-	headers = {
-		'Content-Type': 'application/json;charset=UTF-8', # 컨텐츠타입
-	}
-
-	# 3. http POST 요청
-	response = requests.post(url, headers=headers, json=data, timeout=10)
-	
-	if response.status_code == 200:
-		access_token = response.json().get('token')
-		return access_token
-	else:
-		print('error:', response.status_code)
-
-def fn_ka10086(token, data, cont_yn='N', next_key=''):
-    host = 'https://api.kiwoom.com'  # 실전투자
-    endpoint = '/api/dostk/mrkcond'
-    url = host + endpoint
-
-    headers = {
-        'Content-Type': 'application/json;charset=UTF-8',
-        'authorization': f'Bearer {token}',
-        'cont-yn': cont_yn,
-        'next-key': next_key,
-        'api-id': 'ka10086',
-    }
-
-    try:
-        response = requests.post(url, headers=headers, json=data, timeout=10)
-        if response.status_code != 200:
-            print(f"Error: {response.status_code}")
-            return None, None, None
-
-        res_json = response.json()
-        cont_yn_res = response.headers.get('cont-yn', 'N')
-        next_key_res = response.headers.get('next-key', '')
-    except requests.exceptions.Timeout:
-        print("❌ TIMEOUT 발생")  
-
-    return res_json, cont_yn_res, next_key_res
+from app.service.collector import fn_au10001, fn_ka10086,get_interest_stocksID
 
 
 def collect_12months_data(token, stk_cd):
@@ -108,18 +60,7 @@ def collect_12months_data(token, stk_cd):
         
     return all_data
 
-# 관심 종목 DB 조회 -> 리스트
-def get_interest_stocksID():
-    session = SessionLocal()
-    try:
-        asset_ids = session.query(watchlist.asset_id).filter(watchlist.is_watching == True).all()
-        asset_id_list = [row[0] for row in asset_ids]
-        return asset_id_list
-    except Exception as e:
-        print("DB 조회 중 오류 발생:", e)
-        return []
-    finally:
-        session.close()
+
 
 
 if __name__ == '__main__':

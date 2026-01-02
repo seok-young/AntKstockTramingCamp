@@ -3,12 +3,11 @@ import os
 import sys
 import glob
 import pandas as pd
-from datetime import datetime
 
-from app.service.database import SessionLocal,Base,engine
-from app.model import DailyPrice as daily_price
-# from app.scripts.load_csv import load_csv_to_dataframe
 
+from app.core.database import SessionLocal,Base,engine
+
+from app.service.collector import preprocess_price_df,save_price_to_db
 
 
 # 폴더 내의 파일 리스트 만들기
@@ -19,9 +18,6 @@ def list_price_files(directory):
 
     return csv_path_list
 
-"""
-    TO-DO : API 호출하여 자동으로 수집하는 로직
-"""
 
 # price_df 만들기
 def price_csv_to_df(path):
@@ -33,61 +29,6 @@ def price_csv_to_df(path):
     except Exception as e:
         print(f"error_loading_CSV_file : {e}")
     return price_df
-
-
-
-# 전처리
-def preprocess_price_df(df):
-    """
-    * row data columns
-    date,open_pric,high_pric,low_pric,close_pric,pred_rt,flu_rt,trde_qty,amt_mn,crd_rt,ind,orgn,for_qty,frgn,prm,for_rt,for_poss,for_wght,for_netprps,orgn_netprps,ind_netprps,crd_remn_rt
-
-    
-    * daliy_price columns(after preprocessing)
-    id,stock_id,date,open_price,high_price,low_price,close_price,trde_qty,created_at,updated_at
-    """
-    if df.empty:
-        print("No df for preprocessing")
-        return df
-
-    rename_map ={
-        "open_pric":"open_price",
-        "high_pric":"high_price",
-        "low_pric":"low_price",
-        "close_pric":"close_price",
-    }
-    df = df.rename(columns = rename_map)
-
-    df['date'] = pd.to_datetime(df['date'], format='%Y%m%d')
-    now = datetime.now()
-    df['created_at'] = now
-    df['updated_at'] = now
-
-    final_columns = [
-        "stock_id","date","open_price","high_price","low_price","close_price",
-        "trde_qty","created_at","updated_at"
-    ]
-    
-    return df[final_columns]
-
-# DB 삽입
-def save_price_to_db(df):
-    Base.metadata.create_all(bind=engine)
-    session = SessionLocal()
-    try:
-        data_list = df.to_dict(orient='records')
-        session.bulk_insert_mappings(daily_price,data_list)
-        session.commit()
-        print("Success Uploading price_df to DB")
-    except Exception as e:
-        session.rollback()
-        print(f"Error: {e}")
-    finally:
-        session.close()
-
-    return
-
-
 
 
 if __name__ == '__main__':
