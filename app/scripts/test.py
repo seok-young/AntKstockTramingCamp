@@ -19,6 +19,7 @@ from app.service.recommend import (
 from app.service.notify import send_recommendation_alerts
 
 from app.service.collector import (
+    get_latest_date,
     get_interest_stocksID,
     fetch_daily_prices,
     preprocess_prices,
@@ -51,8 +52,9 @@ if __name__ == '__main__':
     # print(result)
 
     stock_list = get_interest_stocksID()
+    start_date = get_latest_date()
     for stock in stock_list:
-        ticker_symbol, result_json = fetch_daily_prices(stock)
+        ticker_symbol, result_json = fetch_daily_prices(stock, start_date = start_date)
         result_df = preprocess_prices(ticker_symbol,result_json)
         save_price_to_db(result_df)
         print(result_df.head())

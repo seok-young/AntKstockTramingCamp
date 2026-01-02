@@ -2,15 +2,81 @@ from fastapi import FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
 from contextlib import asynccontextmanager
 from datetime import datetime, time, timedelta
+import pandas as pd
 
 from app.scripts.load_csv import load_csv_to_dataframe, preprocess_dataframe
 from app.core.database import SessionLocal,Base,engine
+from app.service.collector import(
+    get_latest_date,
+    get_interest_stocksID,
+    fetch_daily_prices,
+    preprocess_prices,
+    save_price_to_db,
+)
+
+from app.service.analysis import (
+    convert_to_numeric,
+    cal_MA,
+    cal_MACD,
+    cal_RSI_14,
+    cal_Bollinger_band,
+    save_analysis_to_db,
+)
+
+from app.service.recommend import (
+    save_buy_rec,
+    validate_buy_strategy
+)
+
+from app.service.notify import send_recommendation_alerts
 
 def daily_stock_routine():
     print(f"[{datetime.now()}] 루틴 실행 시작")
-    # 주가 수집 API
-    # 분석 - 추천
-    # 디스코드 알림
+    
+    # 루틴 1 : 주가 수집 API
+    stock_list = get_interest_stocksID()
+    total_df_list =[]
+
+    print(f"루틴 1 : 데이터를 수집합니다.")
+    for stock in stock_list:
+        ticker_symbol, result_json = fetch_daily_prices(stock)
+        result_df = preprocess_prices(ticker_symbol,result_json)
+        save_price_to_db(result_df)
+        # print(result_df.head())
+        total_df_list.append(result_df)
+
+    if not total_df_list:
+        print("수집된 데이터가 없어 루틴을 종료합니다.")
+        return
+    
+    total_df = pd.concat(total_df_list, ignore_index=True)
+    total_df = convert_to_numeric(total_df)
+
+
+    # 루틴 2 : 분석
+    print("루틴 2 : 지표 계산을 시작합니다.")
+    df_MA = cal_MA(total_df)
+    df_MA_MACD = cal_MACD(df_MA)
+    df_MA_MACD_RSI = cal_RSI_14(df_MA_MACD)
+    df_MA_MACD_RSI_BB = cal_Bollinger_band(df_MA_MACD_RSI)
+    save_analysis_to_db(df_MA_MACD_RSI_BB)
+
+    # 루틴 3 : 추천
+    print("루틴 3 : 추천을 위한 조건을 비교합니다.")
+
+    for __, analysis in df_MA_MACD_RSI_BB.iterrows():
+        analysis_dict = analysis.to_dict()
+        analysis_dict, buy_signal = validate_buy_strategy(analysis_dict)
+        
+        if buy_signal ==True:
+            save_buy_rec(analysis_dict)
+
+
+    # 루틴 4 : 디스코드 알림
+    print("루틴 4 : 추천사항을 디스코드 알림으로 전송합니다.")
+
+    send_recommendation_alerts()
+
     print(f"[{datetime.now()}] 루틴 실행 완료")
 
 @asynccontextmanager
@@ -23,8 +89,8 @@ async def lifespan(app: FastAPI):
         daily_stock_routine,
         'cron',
         day_of_week='mon-fri',
-        hour=15,
-        minute=30,
+        hour=16,
+        minute=46,
         id="daily_routine"
     )
         # 'cron' : run the job periodically certain time(s) of day

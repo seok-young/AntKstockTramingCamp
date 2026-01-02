@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import pandas as pd
 from sqlalchemy import desc, text
 import time
@@ -183,14 +183,8 @@ def save_price_to_db(df):
 
 # 데이터 수집 메인 오케스트라
 def fetch_daily_prices(ticker_symbol):
-    # 데이터 수집 시작 날짜 구하기
-    start_date = get_latest_date(ticker_symbol)
-
-    if not start_date:
-        start_date = datetime(2024,12,1).date()
-
     current_date = datetime.now().date()
-
+    start_date = get_latest_date(ticker_symbol)
     # 엑세스 토큰 조회
     ACCESS_TOKEN = fn_au10001()
 

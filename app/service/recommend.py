@@ -1,7 +1,7 @@
 import datetime as dt
 import pandas as pd
 import numpy as np
-from sqlalchemy import desc
+from sqlalchemy import desc,text
 
 from app.core.database import SessionLocal,Base,engine
 from app.model import Analysis,Recommendation
@@ -54,13 +54,13 @@ def validate_buy_strategy(analysis_dict):
 
     return analysis_dict, buy_signal
 
-# recommend DB 저장
-def save_buy_rec(analysis_dict):
+# 처음 recommend DB 저장
+def save_bulk_buy_rec(analysis_dict):
     Base.metadata.create_all(bind=engine)
     session = SessionLocal()
     try: 
         new_rec = Recommendation(
-            stock_id = analysis_dict['stock_id'],
+            ticker_symbol = analysis_dict['ticker_symbol'],
             analysis_id = analysis_dict['id'],
             signal_type = "BUY",
             price = analysis_dict['close_price'],
@@ -72,7 +72,38 @@ def save_buy_rec(analysis_dict):
     except Exception as e:
         session.rollback()
         if "UniqueConstraint" not in str(e):
-            print(f" 저장 에러 ({analysis_dict['stock_id']}): {e}")
+            print(f" 저장 에러 ({analysis_dict['ticker_symbol']}): {e}")
+    finally:
+        session.close()
+
+
+def save_buy_rec(analysis_dict):
+    session = SessionLocal()
+    try: 
+        # 이미 앞선 단계에서 analysis 저장 및 flush()가 완료되어 
+        # analysis_dict['id']에 값이 들어있다고 가정합니다.
+        
+        query = text("""
+            INSERT IGNORE INTO recommendation 
+            (ticker_symbol, analysis_id, signal_type, price, base_date, is_sent, create_at)
+            VALUES (:ticker_symbol, :analysis_id, :signal_type, :price, :base_date, 0, NOW())
+        """)
+        
+        session.execute(query, {
+            'ticker_symbol': analysis_dict['ticker_symbol'],
+            'analysis_id': analysis_dict['id'], 
+            'signal_type': "BUY",
+            'price': analysis_dict['close_price'],
+            'base_date': analysis_dict['date']
+        })
+        
+        session.commit()
+        # 성공 로그만 간단히 남깁니다.
+        print(f"succeded save recommendation ({analysis_dict['ticker_symbol']})")
+
+    except Exception as e:
+        session.rollback()
+        print(f"Error during saving recommendation ({analysis_dict.get('ticker_symbol')}): {e}")
     finally:
         session.close()
 

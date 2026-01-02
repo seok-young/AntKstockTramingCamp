@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import datetime as dt
+from sqlalchemy import text
 
 from app.core.database import SessionLocal,Base,engine
 from app.model import Analysis, Watchlist
@@ -39,12 +40,40 @@ def get_price(stock_code):
 
     return df
 
-# 주가 불러오기
-"""
-    TO-DO
-    analysis 테이블에서 가장 최신 데이터를 확인하고 
-    그 이후의 데이터만 수집하도록 필터링해서 조회
-"""
+# numeric 데이터 전처리 및  형변환
+def convert_to_numeric(df):
+    numeric_cols = ['open_price', 'high_price', 'low_price', 'close_price', 'trde_qty']
+    
+    for col in numeric_cols:
+        if col in df.columns:
+            # 1. 문자열에 섞인 '+', '-', ',' 제거
+            df[col] = df[col].astype(str).str.replace('+', '', regex=False)
+            df[col] = df[col].astype(str).str.replace('-', '', regex=False) # 부호가 필요하면 이 부분은 주의
+            df[col] = df[col].astype(str).str.replace(',', '', regex=False)
+            
+            # 2. 숫자형으로 변환 (숫자로 못 바꾸는 건 NaN 처리)
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+    
+    return df
+
+def save_analysis_to_db(analysis_df):
+    session = SessionLocal()
+    try:
+        analysis_dict = analysis_df.to_dict('records')
+        # 1. INSERT IGNORE 쿼리 작성 (테이블의 unique 제약 조건에 걸리면 무시)
+        query = text("""
+            INSERT IGNORE INTO analysis 
+            (ticker_symbol, date, close_price, ma5, ma20, ma60, ma120, macd, macd_signal, macd_hist, rsi, bb_middle, bb_upper, bb_lower)
+            VALUES (:ticker_symbol, :date, :close_price, :ma5, :ma20, :ma60, :ma120, :macd, :macd_signal, :macd_hist, :rsi, :bb_middle, :bb_upper, :bb_lower)
+        """)
+        
+        session.execute(query, analysis_dict)
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        print(f"Analysis 저장 에러: {e}")
+    finally:
+        session.close()
 
 # MA 계산 
 def cal_MA(df):
@@ -111,12 +140,12 @@ def cal_Bollinger_band(df, window=20, num_std=2):
     analysis 테이블 생성 및
     초기 데이터 입력
 """
-def save_analysis_to_DB(df):
+def save_bulk_analysis_to_DB(df):
     # nan -> None
     final_df = df.copy()
     final_df = final_df.replace({np.nan:None})
 
-    # Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     session=SessionLocal()
     try:
         data_list = final_df.to_dict(orient='records')
@@ -130,12 +159,7 @@ def save_analysis_to_DB(df):
         session.close()
     return
 
-# analysis 데이터 삽입
-"""
-    TO-DO
-    원래 있는 analysis 테이블에 
-    가장 최신 데이터 이후의 데이터만 필터링하여 추가로 입력
-"""
+
 
 
 
