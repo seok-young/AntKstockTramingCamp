@@ -34,25 +34,25 @@ def get_recent_analysis(stock_id):
     1. RSI: 50 이하 (과열되지 않은 적정 가격)
     2. 볼린저: 주가가 중심선(20일선) 이하 또는 현재가 <= 하단 밴드 * 1.02
 """
-def validate_buy_strategy(analysis_dict):
+def validate_buy_strategy(analysis_df):
     buy_signal = False
 
     requires = [
-        analysis_dict['close_price'] > analysis_dict['ma120'],
-        analysis_dict['ma20'] > analysis_dict['ma60'],
-        analysis_dict['macd'] > analysis_dict['macd_signal']
+        analysis_df['close_price'] > analysis_df['ma120'],
+        analysis_df['ma20'] > analysis_df['ma60'],
+        analysis_df['macd'] > analysis_df['macd_signal']
     ]
 
     assists = [
-        analysis_dict['rsi'] <= 60,
-        (analysis_dict['close_price'] <= analysis_dict['bb_middle']) or 
-        (analysis_dict['close_price'] <= (analysis_dict['bb_lower'] * 1.02))
+        analysis_df['rsi'] <= 60,
+        (analysis_df['close_price'] <= analysis_df['bb_middle']) or 
+        (analysis_df['close_price'] <= (analysis_df['bb_lower'] * 1.02))
     ]
 
     if all(requires) and any(assists):
         buy_signal = True
 
-    return analysis_dict, buy_signal
+    return analysis_df, buy_signal
 
 # 처음 recommend DB 저장
 def save_bulk_buy_rec(analysis_dict):
@@ -85,14 +85,15 @@ def save_buy_rec(analysis_dict):
         
         query = text("""
             INSERT IGNORE INTO recommendation 
-            (ticker_symbol, analysis_id, signal_type, price, base_date, is_sent, create_at)
-            VALUES (:ticker_symbol, :analysis_id, :signal_type, :price, :base_date, 0, NOW())
+            (ticker_symbol, analysis_id, signal_type, strategy_name, price, base_date, is_sent, create_at)
+            VALUES (:ticker_symbol, :analysis_id, :signal_type, :strategy_name, :price, :base_date, 0, NOW())
         """)
         
         session.execute(query, {
             'ticker_symbol': analysis_dict['ticker_symbol'],
             'analysis_id': analysis_dict['id'], 
             'signal_type': "BUY",
+            'strategy_name':"BASIC",
             'price': analysis_dict['close_price'],
             'base_date': analysis_dict['date']
         })

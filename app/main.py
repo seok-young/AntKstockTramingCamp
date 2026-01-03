@@ -51,7 +51,7 @@ def daily_stock_routine():
     
     total_df = pd.concat(total_df_list, ignore_index=True)
     total_df = convert_to_numeric(total_df)
-
+    print(f"수집된 데이터 -> {total_df.head()}")
 
     # 루틴 2 : 분석
     print("루틴 2 : 지표 계산을 시작합니다.")
@@ -59,12 +59,12 @@ def daily_stock_routine():
     df_MA_MACD = cal_MACD(df_MA)
     df_MA_MACD_RSI = cal_RSI_14(df_MA_MACD)
     df_MA_MACD_RSI_BB = cal_Bollinger_band(df_MA_MACD_RSI)
-    save_analysis_to_db(df_MA_MACD_RSI_BB)
+    df_with_id = save_analysis_to_db(df_MA_MACD_RSI_BB)
 
     # 루틴 3 : 추천
     print("루틴 3 : 추천을 위한 조건을 비교합니다.")
 
-    for __, analysis in df_MA_MACD_RSI_BB.iterrows():
+    for __, analysis in df_with_id.iterrows():
         analysis_dict = analysis.to_dict()
         analysis_dict, buy_signal = validate_buy_strategy(analysis_dict)
         
@@ -88,9 +88,9 @@ async def lifespan(app: FastAPI):
     scheduler.add_job(
         daily_stock_routine,
         'cron',
-        day_of_week='mon-fri',
-        hour=16,
-        minute=46,
+        day_of_week='mon-sun',
+        hour=13,
+        minute=17,
         id="daily_routine"
     )
         # 'cron' : run the job periodically certain time(s) of day

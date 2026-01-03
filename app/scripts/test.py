@@ -6,7 +6,7 @@ from app.service.analysis import (
     cal_MACD,
     cal_RSI_14,
     cal_Bollinger_band,
-    save_analysis_to_DB,
+    save_analysis_to_db,
 )
 from app.core.database import Base,engine
 
@@ -27,6 +27,7 @@ from app.service.collector import (
     )
 
 from app.core.config import settings
+from app.main import daily_stock_routine
 
 if __name__ == '__main__':
     
@@ -51,10 +52,4 @@ if __name__ == '__main__':
     # result=fn_ka10086(ACCESS_TOKEN,params,cont_yn,next_key) 
     # print(result)
 
-    stock_list = get_interest_stocksID()
-    start_date = get_latest_date()
-    for stock in stock_list:
-        ticker_symbol, result_json = fetch_daily_prices(stock, start_date = start_date)
-        result_df = preprocess_prices(ticker_symbol,result_json)
-        save_price_to_db(result_df)
-        print(result_df.head())
+    daily_stock_routine()

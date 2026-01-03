@@ -56,24 +56,7 @@ def convert_to_numeric(df):
     
     return df
 
-def save_analysis_to_db(analysis_df):
-    session = SessionLocal()
-    try:
-        analysis_dict = analysis_df.to_dict('records')
-        # 1. INSERT IGNORE 쿼리 작성 (테이블의 unique 제약 조건에 걸리면 무시)
-        query = text("""
-            INSERT IGNORE INTO analysis 
-            (ticker_symbol, date, close_price, ma5, ma20, ma60, ma120, macd, macd_signal, macd_hist, rsi, bb_middle, bb_upper, bb_lower)
-            VALUES (:ticker_symbol, :date, :close_price, :ma5, :ma20, :ma60, :ma120, :macd, :macd_signal, :macd_hist, :rsi, :bb_middle, :bb_upper, :bb_lower)
-        """)
-        
-        session.execute(query, analysis_dict)
-        session.commit()
-    except Exception as e:
-        session.rollback()
-        print(f"Analysis 저장 에러: {e}")
-    finally:
-        session.close()
+
 
 # MA 계산 
 def cal_MA(df):
@@ -158,6 +141,45 @@ def save_bulk_analysis_to_DB(df):
     finally:
         session.close()
     return
+
+def save_analysis_to_db(analysis_df):
+    session = SessionLocal()
+    try:
+        analysis_df = analysis_df.replace({np.nan:None})
+        analysis_dict = analysis_df.to_dict('records')
+        # 1. INSERT IGNORE 쿼리 작성 (테이블의 unique 제약 조건에 걸리면 무시)
+        insert_query = text("""
+            INSERT IGNORE INTO analysis 
+            (ticker_symbol, date, close_price, ma5, ma20, ma60, ma120, macd, macd_signal, macd_hist, rsi, bb_middle, bb_upper, bb_lower)
+            VALUES (:ticker_symbol, :date, :close_price, :ma5, :ma20, :ma60, :ma120, :macd, :macd_signal, :macd_hist, :rsi, :bb_middle, :bb_upper, :bb_lower)
+        """)
+        
+        session.execute(insert_query, analysis_dict)
+        session.commit()
+
+        target_date = analysis_df['date'].unique().tolist()
+        tickers = analysis_df['ticker_symbol'].unique().tolist()
+
+        select_query = text("""
+            SELECT * FROM analysis 
+            WHERE ticker_symbol IN :tickers 
+            AND date IN :dates
+        """)
+        result_with_id = pd.read_sql(
+            select_query, 
+            session.bind, 
+            params={
+                'tickers': tickers, 
+                'dates': target_date
+            }
+        )
+        return result_with_id
+        
+    except Exception as e:
+        session.rollback()
+        print(f"Analysis 저장 에러: {e}")
+    finally:
+        session.close()
 
 
 

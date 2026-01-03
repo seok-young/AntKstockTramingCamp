@@ -1,4 +1,5 @@
 import requests
+import time
 
 from app.core.config import settings
 from app.core.database import SessionLocal,Base,engine
@@ -19,6 +20,7 @@ def send_recommendation_alerts():
                 price = item.price
                 message = buy_message(symbol, price)
                 response = requests.post(settings.WEBHOOK_URL, json={"content": message})
+                time.sleep(1)
 
                 # 디스코드 성공 응답 : 204
                 if response.status_code == 204:
