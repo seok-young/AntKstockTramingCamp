@@ -104,3 +104,41 @@ class Recommendation(Base):
     __table_args__ = (
         UniqueConstraint('ticker_symbol', 'base_date', 'signal_type', name='_ticker_signal_uc'),
     )
+
+# 포트폴리오 모델
+class Portfolio(Base):
+
+    __tablename__ = 'portfolio'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker_symbol = Column(String(10), ForeignKey('ticker.symbol'), nullable=False) 
+    recommendation_id = Column(Integer, ForeignKey('recommendation.id'), nullable=False)
+    quantity = Column(Integer)
+    buy_price = Column(Integer)
+    buy_date = Column(DateTime, default=datetime.now)
+    sell_price = Column(Integer)
+    sell_date = Column(DateTime, default=datetime.now)
+    is_active = Column(Integer, default=1)
+
+    __table_args__ = (
+        UniqueConstraint('recommendation_id', name='_rec_uc'),
+    )
+
+
+class AccountHistory(Base):
+
+    __tablename__ = 'account_history'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    portfolio_id = Column(Integer, ForeignKey('portfolio.id'), nullable=True) # 입금, 출금 등 포트폴리오와 무관한 거래 가능
+    transaction_type = Column(String(50))
+    amount = Column(Float)                                                    # 변동 금액
+    balance = Column(Float)                                                   # 최종 잔액
+    transaction_date = Column(DateTime, default=datetime.now)
+
+
+    __table_args__ = (
+        UniqueConstraint('portfolio_id', 'transaction_type', name='_port_tran_uc'),
+    )
+        
+    

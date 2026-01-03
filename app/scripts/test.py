@@ -28,6 +28,9 @@ from app.service.collector import (
 
 from app.core.config import settings
 from app.main import daily_stock_routine
+from app.service.portfolio_manager import make_portfolio_table
+
+
 
 if __name__ == '__main__':
     
@@ -52,4 +55,5 @@ if __name__ == '__main__':
     # result=fn_ka10086(ACCESS_TOKEN,params,cont_yn,next_key) 
     # print(result)
 
-    daily_stock_routine()
+    # daily_stock_routine()
+    make_portfolio_table()
