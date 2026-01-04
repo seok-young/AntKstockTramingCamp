@@ -1,6 +1,11 @@
-from app.core.database import SessionLocal,Base,engine
+from app.core.database import (
+    Base,
+    engine,
+    SessionLocal
+)
 
-# DB에 테이블 생성
+
+# DB에 포트폴리오,계좌 테이블 생성
 def make_portfolio_table():
     Base.metadata.create_all(bind=engine)
     session = SessionLocal()
@@ -16,12 +21,3 @@ def make_portfolio_table():
     
     return
 
-# 매수 기록
-def log_buying():
-
-    
-    return
-
-# 매도 기록
-def log_selling():
-    return
