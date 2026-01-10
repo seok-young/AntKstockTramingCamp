@@ -26,11 +26,10 @@ def get_target_stocksList():
         session.close()
 
 # DB 최신 날짜 확인하기
-def get_latest_date_of_analysis(target_ticker):
+def get_latest_date_of_analysis():
     session = SessionLocal()
     try:
         result = session.query(Analysis.date)\
-        .filter(Analysis.ticker_symbol == target_ticker)\
         .order_by(desc(Analysis.date))\
         .first()
 
@@ -229,10 +228,10 @@ def fetch_analysis():
     current_date = datetime.now().date()
 
     all_data =[]
+    start_date = get_latest_date_of_analysis()
+    print(f"start_date = {start_date}")
 
-    for stock in stock_list:
-        start_date = get_latest_date_of_analysis(stock)
-        print(f"start_date = {start_date}")
+    for stock in stock_list:        
         df = get_price(stock,start_date,current_date)
         # print(df.head())
         all_data.append(df)
@@ -245,6 +244,13 @@ def fetch_analysis():
     total_df_MA_MACD_RSI=cal_RSI_14(total_df_MA_MACD)
     total_df_MA_MACD_RSI_BB=cal_Bollinger_band(total_df_MA_MACD_RSI)
     
+    if start_date:
+        start_date = pd.to_datetime(start_date)
+        total_df_MA_MACD_RSI_BB['date'] = pd.to_datetime(total_df_MA_MACD_RSI_BB['date'])
+        total_df_MA_MACD_RSI_BB = total_df_MA_MACD_RSI_BB[total_df_MA_MACD_RSI_BB['date'] > start_date]
+
+    # print(f"new analysis data length = {len(total_df_MA_MACD_RSI_BB)}")
+
     # analysis DB 저장
     result=save_analysis_to_db(total_df_MA_MACD_RSI_BB)
 
