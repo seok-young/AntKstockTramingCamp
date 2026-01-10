@@ -83,8 +83,8 @@ async def lifespan(app: FastAPI):
         daily_stock_routine,
         'cron',
         day_of_week='mon-sun',
-        hour=13,
-        minute=31,
+        hour=14,
+        minute=1,
         id="daily_routine"
     )
         # 'cron' : run the job periodically certain time(s) of day

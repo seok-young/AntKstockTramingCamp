@@ -12,7 +12,8 @@ def send_recommendation_alerts():
         unsent_items = session.query(Recommendation).filter(Recommendation.is_sent == 0).all()
 
         if not unsent_items:
-            no_buy_message()
+            message = no_buy_message()
+            response = requests.post(settings.WEBHOOK_URL, json={"content": message})
             return
         for item in unsent_items:
             if item.signal_type == "BUY":

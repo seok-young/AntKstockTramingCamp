@@ -115,7 +115,7 @@ def save_buy_rec(df):
 # 매도 조건 따지기
 """
     * 매도 조건 : 필수 중 1가지 충족
-    * 익절 조건 : 보조 중 1가지 충족
+    * 보조 조건은 나중에 활용 예정
 
     <필수>
     1. 주가 < 20일 이평선 하향 돌파 (한 달 추세 무너짐)
@@ -126,6 +126,15 @@ def save_buy_rec(df):
     1. 볼린저 밴드: 주가가 상단 밴드 터치 후 재진입
     2. RSI: 75 이상 (단기 과열로 인한 매도 알림)
 """
-def validate_sell_strategy():
+def validate_sell_strategy(analysis_dict, portfolio_dict):
     sell_signal = False
-    return sell_signal
+    requires =[
+        analysis_dict['close_price'] < analysis_dict['ma20'],
+        analysis_dict['macd'] < analysis_dict['macd_signal'],
+        analysis_dict['close_price'] < (portfolio_dict['buy_price'] * 0.93)
+    ]
+
+    if any(requires):
+        sell_signal = True
+
+    return analysis_dict, sell_signal

@@ -48,7 +48,7 @@ class TradeManager:
             self.session.add(history)
             self.session.commit()
 
-            print(f"[{data['transaction_type']}] - [{data['transaction_type']}원] 처리완료")
+            print(f"[{data['transaction_type']}] - [{data['amount']}원] 처리완료")
         except Exception as e:
             self.session.rollback()
             print(f"Error during recording cash flow : {e}")

@@ -115,9 +115,9 @@ class Portfolio(Base):
     ticker_symbol = Column(String(10), ForeignKey('ticker.symbol'), nullable=False) 
     recommendation_id = Column(Integer, ForeignKey('recommendation.id'), nullable=False)
     quantity = Column(Integer)
-    buy_price = Column(Integer)
+    buy_price = Column(Float)
     buy_date = Column(DateTime, default=datetime.now)
-    sell_price = Column(Integer)
+    sell_price = Column(Float)
     sell_date = Column(DateTime, default=datetime.now)
     is_active = Column(Integer, default=1)
 

@@ -54,13 +54,15 @@ def get_bulk_price(stock_code):
 
     return df
 
-# DB에서 주가 불러오기
+# DB에서 주가 불러오기(start_date부터 170일 이전부터 : MA120 계산을 위해서 넉넉하게 조회)
 def get_price(stock_code,start_date,current_date):
+    target_start = pd.to_datetime(start_date)
+    fetch_start = (target_start - timedelta(days=170)).strftime('%Y-%m-%d')
     query = f"""
         SELECT ticker_symbol, date, ABS(close_price) as close_price
         FROM daily_price
         WHERE ticker_symbol = '{stock_code}'
-            AND date BETWEEN '{start_date}' AND '{current_date}'
+            AND date BETWEEN '{fetch_start}' AND '{current_date}'
         ORDER BY date ASC
         """
     try:

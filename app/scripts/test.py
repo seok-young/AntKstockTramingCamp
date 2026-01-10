@@ -1,12 +1,5 @@
 from datetime import datetime,date
 from app.service.analysis import (
-    get_target_stocksList,
-    get_price,
-    cal_MA,
-    cal_MACD,
-    cal_RSI_14,
-    cal_Bollinger_band,
-    save_analysis_to_db,
     fetch_analysis,
 )
 from app.core.database import Base,engine
@@ -27,35 +20,27 @@ from app.service.collector import (
     save_price_to_db
     )
 
+from app.service.trade_manager import (
+    TradeManager
+)
+
+from app.core.database import SessionLocal,Base,engine
 from app.core.config import settings
-from app.main import daily_stock_routine
-# from app.service.trade_manager import make_portfolio_table
 
 
 
 if __name__ == '__main__':
     
-    # params_token = {
-	# 	'grant_type': 'client_credentials',  
-	# 	'appkey': settings.APP_KEY,
-	# 	'secretkey': settings.SECRET_KEY
-	# }
-    # ACCESS_TOKEN = fn_au10001(params_token)
-
-    # qry_dt = date(2025,12,30)
-    # cont_yn = 'N'  # 해당 날짜 조회의 시작은 항상 'N'
-    # next_key = ''      
-        
-    # params = {
-    #     'stk_cd': '005930',
-    #     'qry_dt': qry_dt.strftime("%Y%m%d"),
-    #     'indc_tp': '0',
+    session = SessionLocal()
+    manager = TradeManager(session)
+    # deposit_data = {
+    #     'transaction_type' : 'DEPOSIT',
+    #     'amount' : 1000000
     # }
-        
 
-    # result=fn_ka10086(ACCESS_TOKEN,params,cont_yn,next_key) 
-    # print(result)
+    # manager.record_cash_flow(deposit_data)
 
-    # daily_stock_routine()
-    # make_portfolio_table()
+    # 매수 조건 뜬 애들 데려다가(모두 샀다고 가정) 매도 조건 뜨는 지 비교
     fetch_analysis()
+
+
