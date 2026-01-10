@@ -77,7 +77,10 @@ def save_bulk_buy_rec(analysis_dict):
         session.close()
 
 
-def save_buy_rec(analysis_dict):
+def save_buy_rec(df):
+    if df.empty:
+        print(f"새로운 recommendation이 없습니다.")
+        return
     session = SessionLocal()
     try: 
         # 이미 앞선 단계에서 analysis 저장 및 flush()가 완료되어 
@@ -88,23 +91,22 @@ def save_buy_rec(analysis_dict):
             (ticker_symbol, analysis_id, signal_type, strategy_name, price, base_date, is_sent, create_at)
             VALUES (:ticker_symbol, :analysis_id, :signal_type, :strategy_name, :price, :base_date, 0, NOW())
         """)
-        
-        session.execute(query, {
-            'ticker_symbol': analysis_dict['ticker_symbol'],
-            'analysis_id': analysis_dict['id'], 
-            'signal_type': "BUY",
-            'strategy_name':"BASIC",
-            'price': analysis_dict['close_price'],
-            'base_date': analysis_dict['date']
-        })
-        
+        for _, row in df.iterrows():
+            session.execute(query, {
+                'ticker_symbol': row['ticker_symbol'],
+                'analysis_id': row['id'], 
+                'signal_type': "BUY",
+                'strategy_name':"BASIC",
+                'price': row['close_price'],
+                'base_date': row['date']
+            })
+            
         session.commit()
-        # 성공 로그만 간단히 남깁니다.
-        print(f"succeded save recommendation ({analysis_dict['ticker_symbol']})")
+        print(f"Successfully saved {len(df)} recommendations.")
 
     except Exception as e:
         session.rollback()
-        print(f"Error during saving recommendation ({analysis_dict.get('ticker_symbol')}): {e}")
+        print(f"Error during saving recommendation : {e}")
     finally:
         session.close()
 

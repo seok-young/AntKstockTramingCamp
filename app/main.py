@@ -53,7 +53,7 @@ def daily_stock_routine():
     # 루틴 3 : 추천 및 저장
     print("루틴 3 : 추천을 위한 조건을 비교합니다.")
 
-    total =[]
+    rec =[]
     for __, analysis in df_with_id.iterrows():
         analysis_dict = analysis.to_dict()
         analysis_dict, buy_signal = validate_buy_strategy(analysis_dict)
@@ -61,11 +61,10 @@ def daily_stock_routine():
 
         if buy_signal ==True:
             print(f"analysis_dict = [{analysis_dict}]")
-            total.append(analysis_dict)
- 
-            # save_buy_rec(analysis_dict)
+            rec.append(analysis_dict)
 
-
+        rec_df = pd.DataFrame(rec)
+        save_buy_rec(rec_df)
 
     # 루틴 4 : 디스코드 알림
     print("루틴 4 : 추천사항을 디스코드 알림으로 전송합니다.")
