@@ -15,12 +15,7 @@ from app.service.collector import(
 )
 
 from app.service.analysis import (
-    convert_to_numeric,
-    cal_MA,
-    cal_MACD,
-    cal_RSI_14,
-    cal_Bollinger_band,
-    save_analysis_to_db,
+    fetch_analysis
 )
 
 from app.service.recommend import (
@@ -29,6 +24,11 @@ from app.service.recommend import (
 )
 
 from app.service.notify import send_recommendation_alerts
+
+"""
+to-do
+루틴 초반에 에러나면 뒤에 거 실행하지 말고 알림
+"""
 
 def daily_stock_routine():
     print(f"[{datetime.now()}] 루틴 실행 시작")
@@ -43,33 +43,28 @@ def daily_stock_routine():
         result_df = preprocess_prices(ticker_symbol,result_json)
         save_price_to_db(result_df)
         # print(result_df.head())
-        total_df_list.append(result_df)
 
-    if not total_df_list:
-        print("수집된 데이터가 없어 루틴을 종료합니다.")
-        return
-    
-    total_df = pd.concat(total_df_list, ignore_index=True)
-    total_df = convert_to_numeric(total_df)
-    print(f"수집된 데이터 -> {total_df.head()}")
 
-    # 루틴 2 : 분석
+    # 루틴 2 : 분석 및 저장
     print("루틴 2 : 지표 계산을 시작합니다.")
-    df_MA = cal_MA(total_df)
-    df_MA_MACD = cal_MACD(df_MA)
-    df_MA_MACD_RSI = cal_RSI_14(df_MA_MACD)
-    df_MA_MACD_RSI_BB = cal_Bollinger_band(df_MA_MACD_RSI)
-    df_with_id = save_analysis_to_db(df_MA_MACD_RSI_BB)
 
-    # 루틴 3 : 추천
+    df_with_id=fetch_analysis()
+
+    # 루틴 3 : 추천 및 저장
     print("루틴 3 : 추천을 위한 조건을 비교합니다.")
 
+    total =[]
     for __, analysis in df_with_id.iterrows():
         analysis_dict = analysis.to_dict()
         analysis_dict, buy_signal = validate_buy_strategy(analysis_dict)
-        
+        print(f"calculated for recommendation [{analysis_dict}]. result = [{buy_signal}]")
+
         if buy_signal ==True:
-            save_buy_rec(analysis_dict)
+            print(f"analysis_dict = [{analysis_dict}]")
+            total.append(analysis_dict)
+ 
+            # save_buy_rec(analysis_dict)
+
 
 
     # 루틴 4 : 디스코드 알림
@@ -90,7 +85,7 @@ async def lifespan(app: FastAPI):
         'cron',
         day_of_week='mon-sun',
         hour=13,
-        minute=17,
+        minute=31,
         id="daily_routine"
     )
         # 'cron' : run the job periodically certain time(s) of day

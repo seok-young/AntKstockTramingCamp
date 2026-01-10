@@ -34,25 +34,25 @@ def get_recent_analysis(stock_id):
     1. RSI: 50 이하 (과열되지 않은 적정 가격)
     2. 볼린저: 주가가 중심선(20일선) 이하 또는 현재가 <= 하단 밴드 * 1.02
 """
-def validate_buy_strategy(analysis_df):
+def validate_buy_strategy(analysis_dict):
     buy_signal = False
 
     requires = [
-        analysis_df['close_price'] > analysis_df['ma120'],
-        analysis_df['ma20'] > analysis_df['ma60'],
-        analysis_df['macd'] > analysis_df['macd_signal']
+        analysis_dict['close_price'] > analysis_dict['ma120'],
+        analysis_dict['ma20'] > analysis_dict['ma60'],
+        analysis_dict['macd'] > analysis_dict['macd_signal']
     ]
 
     assists = [
-        analysis_df['rsi'] <= 60,
-        (analysis_df['close_price'] <= analysis_df['bb_middle']) or 
-        (analysis_df['close_price'] <= (analysis_df['bb_lower'] * 1.02))
+        analysis_dict['rsi'] <= 60,
+        (analysis_dict['close_price'] <= analysis_dict['bb_middle']) or 
+        (analysis_dict['close_price'] <= (analysis_dict['bb_lower'] * 1.02))
     ]
 
     if all(requires) and any(assists):
         buy_signal = True
 
-    return analysis_df, buy_signal
+    return analysis_dict, buy_signal
 
 # 처음 recommend DB 저장
 def save_bulk_buy_rec(analysis_dict):

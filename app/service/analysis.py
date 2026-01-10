@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-import datetime as dt
-from sqlalchemy import text
+from datetime import datetime,timedelta
+from sqlalchemy import text, desc
 
 from app.core.database import SessionLocal,Base,engine
 from app.model import Analysis, Watchlist
@@ -12,7 +12,7 @@ def get_target_stocksList():
 
     session=SessionLocal()
     try:
-        watchlist_stocks = session.query(Watchlist.asset_id).filter(Watchlist.is_watching == 1).all()
+        watchlist_stocks = session.query(Watchlist.ticker_symbol).filter(Watchlist.is_watching == 1).all()
         if not watchlist_stocks:
             print("No Watchlist from DB")
             return []
@@ -24,21 +24,56 @@ def get_target_stocksList():
         return []
     finally: 
         session.close()
-    
+
+# DB 최신 날짜 확인하기
+def get_latest_date_of_analysis(target_ticker):
+    session = SessionLocal()
+    try:
+        result = session.query(Analysis.date)\
+        .filter(Analysis.ticker_symbol == target_ticker)\
+        .order_by(desc(Analysis.date))\
+        .first()
+
+        return result[0] if result else None
+    except Exception as e:
+        return None
+    finally:
+        session.close()
 
 
 # 처음 DB에서 주가 불러오기
-def get_price(stock_code):
+def get_bulk_price(stock_code):
     # daily_price 테이블의 close_price의 절댓값을 불러옴
     query = f"""
-        SELECT stock_id, date, ABS(close_price) as close_price
+        SELECT ticker_symbol, date, ABS(close_price) as close_price
         FROM daily_price
-        WHERE stock_id = '{stock_code}'
+        WHERE ticker_symbol = '{stock_code}'
         ORDER BY date ASC
     """
     df = pd.read_sql(query, con=engine)
 
     return df
+
+# DB에서 주가 불러오기
+def get_price(stock_code,start_date,current_date):
+    query = f"""
+        SELECT ticker_symbol, date, ABS(close_price) as close_price
+        FROM daily_price
+        WHERE ticker_symbol = '{stock_code}'
+            AND date BETWEEN '{start_date}' AND '{current_date}'
+        ORDER BY date ASC
+        """
+    try:
+        df = pd.read_sql(query, engine)
+        return df
+    except Exception as e:
+        print(f"Error during Gettig_price for analysis : [{e}]")
+        return None
+
+
+
+
+
 
 # numeric 데이터 전처리 및  형변환
 def convert_to_numeric(df):
@@ -142,6 +177,7 @@ def save_bulk_analysis_to_DB(df):
         session.close()
     return
 
+# analysis DB 저장
 def save_analysis_to_db(analysis_df):
     session = SessionLocal()
     try:
@@ -183,5 +219,33 @@ def save_analysis_to_db(analysis_df):
 
 
 
+# analysis 수집 메인 오케스트라
+def fetch_analysis():
 
+    # analysis용 daily_price 불러오기
+    stock_list = get_target_stocksList()
+    current_date = datetime.now().date()
+
+    all_data =[]
+
+    for stock in stock_list:
+        start_date = get_latest_date_of_analysis(stock)
+        print(f"start_date = {start_date}")
+        df = get_price(stock,start_date,current_date)
+        # print(df.head())
+        all_data.append(df)
+
+    total_df = pd.concat(all_data)
+
+    # analysis 시행
+    total_df_MA=cal_MA(total_df)
+    total_df_MA_MACD=cal_MACD(total_df_MA)
+    total_df_MA_MACD_RSI=cal_RSI_14(total_df_MA_MACD)
+    total_df_MA_MACD_RSI_BB=cal_Bollinger_band(total_df_MA_MACD_RSI)
+    
+    # analysis DB 저장
+    result=save_analysis_to_db(total_df_MA_MACD_RSI_BB)
+
+
+    return result
 

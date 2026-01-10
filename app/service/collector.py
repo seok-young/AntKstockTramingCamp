@@ -187,10 +187,11 @@ def fetch_daily_prices(ticker_symbol):
     start_date = get_latest_date(ticker_symbol)
     # 엑세스 토큰 조회
     ACCESS_TOKEN = fn_au10001()
-
+    print(f"start_date = {start_date}")
     all_data = []
     while current_date >= start_date:
 
+        print(f"collect Data From {current_date}")
         # 주가 조회 파라미터
         qry_dt = current_date.strftime('%Y%m%d')
         cont_yn = 'N'

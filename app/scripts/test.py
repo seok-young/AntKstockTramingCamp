@@ -7,6 +7,7 @@ from app.service.analysis import (
     cal_RSI_14,
     cal_Bollinger_band,
     save_analysis_to_db,
+    fetch_analysis,
 )
 from app.core.database import Base,engine
 
@@ -28,7 +29,7 @@ from app.service.collector import (
 
 from app.core.config import settings
 from app.main import daily_stock_routine
-from app.service.portfolio_manager import make_portfolio_table
+# from app.service.trade_manager import make_portfolio_table
 
 
 
@@ -56,4 +57,5 @@ if __name__ == '__main__':
     # print(result)
 
     # daily_stock_routine()
-    make_portfolio_table()
+    # make_portfolio_table()
+    fetch_analysis()
