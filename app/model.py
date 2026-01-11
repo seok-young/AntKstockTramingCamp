@@ -140,6 +140,7 @@ class AccountHistory(Base):
 
     __table_args__ = (
         UniqueConstraint('portfolio_id', 'transaction_type', name='_port_tran_uc'),
+        CheckConstraint('balance >= 0', name='check_balance_positive'),
     )
 
 # 현금 입력 구조 정의

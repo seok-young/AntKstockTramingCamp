@@ -66,8 +66,8 @@ class TradeManager:
         trade_data 예시:
         {
             ticker_symbol: '005930',
-            recommendation_id: 2,
-            quantity: 10,
+            rec_id: 2,
+            qty: 10,
             price: 110000
             transaction_type: 'BUY'
         }
@@ -77,9 +77,9 @@ class TradeManager:
             cur_balance = self._get_latest_balance()
 
             # 거래 금액 계산
-            total_amount = trade_data['qty'] * trade_data['price']
+            total_amount = trade_data.qty * trade_data.price
             
-            if trade_data['transaction_type'] == 'BUY':
+            if trade_data.transaction_type == 'BUY':
                 amount_change = -total_amount
             else:
                 amount_change = total_amount
@@ -88,13 +88,13 @@ class TradeManager:
             new_balance = cur_balance + amount_change
 
             # 거래 기록
-            if trade_data['transaction_type'] == 'BUY':
+            if trade_data.transaction_type == 'BUY':
                 self._handle_buy(trade_data,new_balance, amount_change)
-            elif trade_data['transaction_type'] == 'SELL':
+            elif trade_data.transaction_type == 'SELL':
                 self._handle_sell(trade_data,new_balance, amount_change)
 
             self.session.commit()
-            print(f"[{trade_data['symbol']}] - [{trade_data['transaction_type']}] 처리 완료")
+            print(f"[{trade_data.ticker_symbol}] - [{trade_data.transaction_type}] 처리 완료")
         except Exception as e:
             self.session.rollback()
             print(f"Error during executing trade : {e}" )
@@ -106,10 +106,10 @@ class TradeManager:
 
         # Portfolio
         new_port = Portfolio(
-            ticker_symbol = data['symbol'],
-            recommendation_id = data['rec_id'],
-            quantity = data['qty'],
-            buy_price = data['price'],
+            ticker_symbol = data.ticker_symbol,
+            recommendation_id = data.rec_id,
+            quantity = data.qty,
+            buy_price = data.price,
             buy_date = now,
             is_active = 1
         )

@@ -22,6 +22,8 @@ from app.service.collector import (
     save_price_to_db
     )
 
+from app.model import TradeInput
+
 from app.service.trade_manager import (
     TradeManager
 )
@@ -34,38 +36,65 @@ from app.core.config import settings
 if __name__ == '__main__':
     
     session = SessionLocal()
-    manager = TradeManager(session)
-    # deposit_data = {
-    #     'transaction_type' : 'DEPOSIT',
-    #     'amount' : 1000000
-    # }
-
-    # manager.record_cash_flow(deposit_data)
-
-    # 12/26일 이후로 rec-buy 따져봐야돼
-    analysis_with_id=fetch_analysis()
-    print(f"analysis_with_id.head() = {analysis_with_id.head()}")
-    print(f"analysis_with_id.tail() = {analysis_with_id.tail()}")
-
-    rec =[]
-    for __, analysis in analysis_with_id.iterrows():
-        analysis_dict = analysis.to_dict()
-        analysis_dict, buy_signal = validate_buy_strategy(analysis_dict)
-        print(f"calculated for recommendation [{analysis_dict}]. result = [{buy_signal}]")
-
-        if buy_signal ==True:
-            print(f"analysis_dict = [{analysis_dict}]")
-            rec.append(analysis_dict)
-
-    rec_df = pd.DataFrame(rec)
-    save_buy_rec(rec_df)
-
-    # 루틴 4 : 디스코드 알림
-    # print("루틴 4 : 추천사항을 디스코드 알림으로 전송합니다.")
-
-    # send_recommendation_alerts()
 
     # 매수 조건 뜬 애들 데려다가(모두 샀다고 가정) 매도 조건 뜨는 지 비교
+    # 가장 과거 rec 뜬 애들 7개 대상으로 매도 따져보자
+    query = f"""
+        SELECT *
+        FROM (
+            SELECT *,
+                ROW_NUMBER() OVER (PARTITION BY ticker_symbol ORDER BY base_date ASC) as row_num
+            FROM recommendation
+        ) as ranked_data
+        WHERE row_num = 1
+        ORDER BY base_date ASC
+        LIMIT 7;
+    """
     
+    target = pd.read_sql(query, con=engine)
+    target['share'] = None
+    target['price'] = target['price'].astype(float)
+    # print(target.head())
 
 
+
+    """"
+    To-Do
+    0. 몇 주를 사야되는 지 계산하기 V
+    1. 포트폴리오에 저장하기       V
+    2. account_history에 기록    V
+    3. 매도 조건 따져보기
+    4. 매도 API 테스트
+    """
+
+    # 1. 몇 주 사야 되는지 계산
+    target.loc[target['price'] >= 100000, 'share'] = 1
+    target.loc[target['price'] < 100000, 'share'] = 100000 // target['price']
+
+    # print(target.to_string())
+
+    # 2. 포폴 저장
+    manager = TradeManager(session)
+    
+    cashinput = {
+        'amount' : 1000000,
+        'transaction_type' : 'DEPOSIT'
+    }
+
+    manager.record_cash_flow(cashinput)
+
+
+    temp =[]
+    for _,row in target.iterrows():
+        trade = TradeInput(
+            ticker_symbol=row['ticker_symbol'],
+            rec_id=row['id'],
+            qty=row['share'],
+            price=row['price'],
+            transaction_type=row['signal_type']
+        )
+        try :
+            manager.execute_trade(trade)
+        except Exception as e:
+            print(f"Error during executing trade [{e}]")
+        # print(trade)
