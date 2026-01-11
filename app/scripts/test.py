@@ -27,7 +27,10 @@ from app.service.trade_manager import (
 )
 
 from app.service.scanner import (
-    scan_sell
+    get_current_holdings,
+    get_watchlist,
+    get_current_balance,
+    get_buy_candidate
 )
 
 from app.model import TradeInput
@@ -101,6 +104,6 @@ if __name__ == '__main__':
     #     except Exception as e:
     #         print(f"Error during executing trade [{e}]")
     #     # print(trade)
-
-    target=scan_sell()
-    print(target)
+    res = get_buy_candidate()
+    print(res)
+    
