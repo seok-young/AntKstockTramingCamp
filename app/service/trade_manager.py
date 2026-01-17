@@ -151,4 +151,37 @@ class TradeManager:
         )
         self.session.add(history)
 
+    """
 
+        가상정산
+
+    """
+
+    def calculate_virtual_balance(self, virtual_balance, trade_data: dict):
+        """
+        trade_data 예시:
+        {
+            ticker_symbol: '005930',
+            rec_id: 2,
+            qty: 10,
+            price: 110000
+            transaction_type: 'BUY'
+        }
+        """
+        try:
+            # 거래 금액 계산
+            total_amount = trade_data.qty * trade_data.price
+            
+            if trade_data.transaction_type == 'BUY':
+                amount_change = -total_amount
+            else:
+                amount_change = total_amount
+
+            # 새로운 잔액 계산
+            new_balance = virtual_balance + amount_change
+
+        except Exception as e:            
+            print(f"Error during calculating virtual balance : {e}" )
+            raise
+
+        return new_balance

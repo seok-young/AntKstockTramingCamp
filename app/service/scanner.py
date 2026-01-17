@@ -15,18 +15,7 @@ def get_watchlist():
         session.close()
 
 
-def get_current_holdings():
-    session = SessionLocal()
-    try:
-        result = session.query(Portfolio.ticker_symbol)\
-                        .filter(Portfolio.is_active == 1)\
-                        .all()        
-        return [r[0] for r in result]
-    except Exception as e:
-        print(f"Error during scanning sell [{e}]")
-        return None    
-    finally:
-        session.close()
+
     
 def get_current_balance():
     session = SessionLocal()
@@ -54,6 +43,29 @@ def get_latest_price(ticker_symbol):
         session.close()
     return None
 
+
+
+"""
+매도 대상
+포트폴리오에 담겨있는 종목
+
+-> get_current_holdings() 쓰면 됨
+"""
+def get_current_holdings():
+    session = SessionLocal()
+    try:
+        result = session.query(Portfolio.ticker_symbol)\
+                        .filter(Portfolio.is_active == 1)\
+                        .all()        
+        return [r[0] for r in result]
+    except Exception as e:
+        print(f"Error during scanning sell [{e}]")
+        return None    
+    finally:
+        session.close()
+
+
+
 """"
 매수 대상
  - 포트폴리오에 담겨있지 않은 종목
@@ -76,10 +88,3 @@ def get_buy_candidate():
 
 
     return final_candidate
-
-"""
-매도 대상
-포트폴리오에 담겨있는 종목
-
--> get_current_holdings()쓰면 됨
-"""

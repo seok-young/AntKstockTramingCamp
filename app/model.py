@@ -116,9 +116,9 @@ class Portfolio(Base):
     recommendation_id = Column(Integer, ForeignKey('recommendation.id'), nullable=False)
     quantity = Column(Integer)
     buy_price = Column(Float)
-    buy_date = Column(DateTime, default=datetime.now)
+    buy_date = Column(DateTime)
     sell_price = Column(Float)
-    sell_date = Column(DateTime, default=datetime.now)
+    sell_date = Column(DateTime)
     is_active = Column(Integer, default=1)
 
     __table_args__ = (

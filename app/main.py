@@ -1,11 +1,17 @@
 from fastapi import FastAPI
 from apscheduler.schedulers.background import BackgroundScheduler
 from contextlib import asynccontextmanager
-from datetime import datetime, time, timedelta
+from datetime import datetime, date, time, timedelta
 import pandas as pd
+from sqlalchemy import desc
 
 from app.scripts.load_csv import load_csv_to_dataframe, preprocess_dataframe
 from app.core.database import SessionLocal,Base,engine
+from app.model import (
+    Analysis,
+    Portfolio,
+    TradeInput
+)
 from app.service.collector import(
     get_latest_date,
     get_interest_stocksID,
@@ -19,25 +25,42 @@ from app.service.analysis import (
 )
 
 from app.service.recommend import (
+    validate_sell_strategy,
     save_buy_rec,
+    save_sell_rec,
     validate_buy_strategy
 )
 
 from app.service.notify import send_recommendation_alerts
 
+from app.service.scanner import get_current_holdings, get_current_balance
+
+from app.service.trade_manager import TradeManager
+
 """
 to-do
 루틴 초반에 에러나면 뒤에 거 실행하지 말고 알림
+
+데일리 루틴
+0. 데이터 수집 V
+1. 매도 후보 정하기 V
+2. 매도 후보 자격 검증 V
+3. 가상정산
+4. 매수 후보 정하기
+5. 매수 후보 자격 검증
+6. 통합(매수 + 매도) 알림 정산
 """
 
 def daily_stock_routine():
+    pd.set_option('display.max_columns', None)
+    session = SessionLocal()
     print(f"[{datetime.now()}] 루틴 실행 시작")
     
     # 루틴 1 : 주가 수집 API
     stock_list = get_interest_stocksID()
     total_df_list =[]
 
-    print(f"루틴 1 : 데이터를 수집합니다.")
+    print(f"데이터를 수집합니다.")
     for stock in stock_list:
         ticker_symbol, result_json = fetch_daily_prices(stock)
         result_df = preprocess_prices(ticker_symbol,result_json)
@@ -46,32 +69,82 @@ def daily_stock_routine():
 
 
     # 루틴 2 : 분석 및 저장
-    print("루틴 2 : 지표 계산을 시작합니다.")
-
     df_with_id=fetch_analysis()
 
-    # 루틴 3 : 추천 및 저장
-    print("루틴 3 : 추천을 위한 조건을 비교합니다.")
+    #--------------------------------------------------------------------#
+    
+    # 루틴 3 : 매도 후보 정하기
+    buy_candidates=get_current_holdings()
 
-    rec =[]
-    for __, analysis in df_with_id.iterrows():
-        analysis_dict = analysis.to_dict()
-        analysis_dict, buy_signal = validate_buy_strategy(analysis_dict)
-        print(f"calculated for recommendation [{analysis_dict}]. result = [{buy_signal}]")
+    # 루틴 4 : 매도 조건 따져보기
+    rec_sell = []
+    portfolio_list =[]
+    for can in buy_candidates:
+        
+        analysis_obj=session.query(Analysis)\
+            .filter(Analysis.ticker_symbol == can)\
+            .order_by(desc(Analysis.date))\
+            .first()
 
-        if buy_signal ==True:
-            print(f"analysis_dict = [{analysis_dict}]")
-            rec.append(analysis_dict)
+        portfolio_obj=session.query(Portfolio)\
+            .filter(Portfolio.ticker_symbol == can)\
+            .first()
+        
+        # dict로 변환
+        analysis_dict = {c.name: getattr(analysis_obj, c.name) for c in analysis_obj.__table__.columns}
+        portfolio_dict = {c.name: getattr(portfolio_obj, c.name) for c in portfolio_obj.__table__.columns}
+        portfolio_list.append(portfolio_dict)
 
-        rec_df = pd.DataFrame(rec)
-        save_buy_rec(rec_df)
+        analysis_dict, sell_signal = validate_sell_strategy(analysis_dict, portfolio_dict)
+        if sell_signal ==True:
+            rec_sell.append(analysis_dict)
 
-    # 루틴 4 : 디스코드 알림
-    print("루틴 4 : 추천사항을 디스코드 알림으로 전송합니다.")
+        rec_df = pd.DataFrame(rec_sell)
+        port_df = pd.DataFrame(portfolio_list)
+        save_sell_rec(rec_df)       
+    
 
-    send_recommendation_alerts()
+    # 루틴 5 : 가상 정산
+    
+    # 가상의 trade_date 만들기
+    manager = TradeManager(session)
+    virtual_balance = get_current_balance() 
+    merged_df = rec_df.merge(port_df, on = 'ticker_symbol', how='left', suffixes=('_rec','_port'))
+    print(merged_df.head())
+    for index, row in merged_df.iterrows():
+        temp_trade = TradeInput(
+            ticker_symbol = row['ticker_symbol'],
+            rec_id = row['id_rec'],                 # recommendation.id
+            qty = row['quantity'],                  # portfolio.quantity
+            price = row['price'],                   # recommendation.price
+            transaction_type= 'SELL',
+        )
+        virtual_balance = manager.calculate_virtual_balance(virtual_balance, temp_trade)
 
-    print(f"[{datetime.now()}] 루틴 실행 완료")
+    print(f"virtual_balance = {virtual_balance}")
+    # 루틴 6 : 매수 후보 정하기 
+
+    # 루틴 7 : 매수 조건 따지기
+
+    # rec_buy =[]
+    # for __, analysis in df_with_id.iterrows():
+    #     analysis_dict = analysis.to_dict()
+    #     analysis_dict, buy_signal = validate_buy_strategy(analysis_dict)
+    #     print(f"calculated for recommendation [{analysis_dict}]. result = [{buy_signal}]")
+
+    #     if buy_signal ==True:
+    #         print(f"analysis_dict = [{analysis_dict}]")
+    #         rec_buy.append(analysis_dict)
+
+    #     rec_df = pd.DataFrame(rec_buy)
+    #     save_buy_rec(rec_df)
+
+    # # 루틴 4 : 디스코드 알림
+    # print("루틴 4 : 추천사항을 디스코드 알림으로 전송합니다.")
+
+    # send_recommendation_alerts()
+
+    # print(f"[{datetime.now()}] 루틴 실행 완료")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  
@@ -83,8 +156,8 @@ async def lifespan(app: FastAPI):
         daily_stock_routine,
         'cron',
         day_of_week='mon-sun',
-        hour=14,
-        minute=1,
+        hour=12,
+        minute=20,
         id="daily_routine"
     )
         # 'cron' : run the job periodically certain time(s) of day
@@ -96,7 +169,7 @@ async def lifespan(app: FastAPI):
     end_window = time(20,0)    # 오후 8시
 
     if (now.weekday() < 5) and (start_window <= current_time <= end_window):
-        print("서버 시작 시점이 정기 예약 시간이후입니다. 5초 뒤 예약 작업을 시작합니다.")
+        print("정기예약시간 이후에 서버를 시작했습니다. 5초 뒤 예약 작업을 시작합니다.")
         run_at = now + timedelta(seconds=5)
         scheduler.add_job(
             daily_stock_routine,

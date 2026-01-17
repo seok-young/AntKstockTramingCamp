@@ -54,6 +54,33 @@ def validate_buy_strategy(analysis_dict):
 
     return analysis_dict, buy_signal
 
+# 매도 조건 따지기
+"""
+    * 매도 조건 : 필수 중 1가지 충족
+    * 보조 조건은 나중에 활용 예정
+
+    <필수>
+    1. 주가 < 20일 이평선 하향 돌파 (한 달 추세 무너짐)
+    2. MACD 선 < 시그널 선 (데드크로스 발생)
+    3. 현재가 < 매수가 * 0.93 (기계적 -7% 손절선, 강제손절선)
+
+    <보조>
+    1. 볼린저 밴드: 주가가 상단 밴드 터치 후 재진입
+    2. RSI: 75 이상 (단기 과열로 인한 매도 알림)
+"""
+def validate_sell_strategy(analysis_dict, portfolio_dict):
+    sell_signal = False
+    requires =[
+        analysis_dict['close_price'] < analysis_dict['ma20'],
+        analysis_dict['macd'] < analysis_dict['macd_signal'],
+        analysis_dict['close_price'] < (portfolio_dict['buy_price'] * 0.93)
+    ]
+
+    if any(requires):
+        sell_signal = True
+
+    return analysis_dict, sell_signal
+
 # 처음 recommend DB 저장
 def save_bulk_buy_rec(analysis_dict):
     Base.metadata.create_all(bind=engine)
@@ -83,9 +110,7 @@ def save_buy_rec(df):
         return
     session = SessionLocal()
     try: 
-        # 이미 앞선 단계에서 analysis 저장 및 flush()가 완료되어 
-        # analysis_dict['id']에 값이 들어있다고 가정합니다.
-        
+
         query = text("""
             INSERT IGNORE INTO recommendation 
             (ticker_symbol, analysis_id, signal_type, strategy_name, price, base_date, is_sent, create_at)
@@ -111,30 +136,35 @@ def save_buy_rec(df):
         session.close()
 
 
+def save_sell_rec(df):
+    if df.empty:
+        print(f"새로운 recommendation이 없습니다.")
+        return
+    session = SessionLocal()
+    try:         
+        query = text("""
+            INSERT IGNORE INTO recommendation 
+            (ticker_symbol, analysis_id, signal_type, strategy_name, price, base_date, is_sent, create_at)
+            VALUES (:ticker_symbol, :analysis_id, :signal_type, :strategy_name, :price, :base_date, 0, NOW())
+        """)
+        for _, row in df.iterrows():
+            session.execute(query, {
+                'ticker_symbol': row['ticker_symbol'],
+                'analysis_id': row['id'], 
+                'signal_type': "SELL",
+                'strategy_name':"BASIC",
+                'price': row['close_price'],
+                'base_date': row['date']
+            })
+            
+        session.commit()
+        print(f"Successfully saved {len(df)} recommendations.")
 
-# 매도 조건 따지기
-"""
-    * 매도 조건 : 필수 중 1가지 충족
-    * 보조 조건은 나중에 활용 예정
+    except Exception as e:
+        session.rollback()
+        print(f"Error during saving recommendation : {e}")
+    finally:
+        session.close()
 
-    <필수>
-    1. 주가 < 20일 이평선 하향 돌파 (한 달 추세 무너짐)
-    2. MACD 선 < 시그널 선 (데드크로스 발생)
-    3. 현재가 < 매수가 * 0.93 (기계적 -7% 손절선, 강제손절선)
 
-    <보조>
-    1. 볼린저 밴드: 주가가 상단 밴드 터치 후 재진입
-    2. RSI: 75 이상 (단기 과열로 인한 매도 알림)
-"""
-def validate_sell_strategy(analysis_dict, portfolio_dict):
-    sell_signal = False
-    requires =[
-        analysis_dict['close_price'] < analysis_dict['ma20'],
-        analysis_dict['macd'] < analysis_dict['macd_signal'],
-        analysis_dict['close_price'] < (portfolio_dict['buy_price'] * 0.93)
-    ]
 
-    if any(requires):
-        sell_signal = True
-
-    return analysis_dict, sell_signal

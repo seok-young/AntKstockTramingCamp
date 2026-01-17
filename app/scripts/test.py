@@ -106,4 +106,3 @@ if __name__ == '__main__':
     #     # print(trade)
     res = get_buy_candidate()
     print(res)
-    

@@ -72,10 +72,6 @@ def get_price(stock_code,start_date,current_date):
         return None
 
 
-
-
-
-
 # numeric 데이터 전처리 및  형변환
 def convert_to_numeric(df):
     numeric_cols = ['open_price', 'high_price', 'low_price', 'close_price', 'trde_qty']
