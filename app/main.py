@@ -49,10 +49,12 @@ to-do
 0. 데이터 수집 V
 1. 매도 후보 정하기 V
 2. 매도 후보 자격 검증 V
+ + 매도 수량 계산
 3. 가상정산 V
-4. 매수 후보 정하기
-5. 매수 후보 자격 검증
-6. 통합(매수 + 매도) 알림 정산
+4. 매수 후보 정하기 V
+5. 매수 후보 자격 검증 V
+ + 매수 수량 계산
+6. 통합(매수 + 매도) 알림 정산 V
 """
 
 def daily_stock_routine():
@@ -94,6 +96,8 @@ def daily_stock_routine():
 
         portfolio_obj=session.query(Portfolio)\
             .filter(Portfolio.ticker_symbol == can)\
+            .filter(Portfolio.is_active == 1)\
+            .order_by(desc(Portfolio.buy_date))\
             .first()
         
         if (len(analysis_res) >= 2) and (portfolio_obj) :
@@ -110,11 +114,11 @@ def daily_stock_routine():
                 'yesterday':analysis_yes_dict,
                 'portfolio':portfolio_dict                
             })
-            print(f"work_queue length : {len(work_queue)}")
-            print(f"work_queue : {work_queue[0]}")
+            
         else:
             print("Not Enough Analysis Data For Sell_recommendation")
-
+    print(f"work_queue length : {len(work_queue)}")
+    print(f"work_queue : {work_queue[0]}")
 
 
     # 루틴 4 : 매도 조건 따져보기(매도 조건 수정하기!!!)
@@ -133,16 +137,16 @@ def daily_stock_routine():
     # 매도 추천이 있을때만
     manager = TradeManager(session)
     if not rec_df.empty:
+        print("There is Sell Recommendation Today")
         print(f"DEBUG: rec_df columns -> {rec_df.columns.tolist()}")
         print(f"DEBUG: port_df columns -> {port_df.columns.tolist()}")
         save_sell_rec(rec_df)    
 
-        # 가상의 trade_date 만들기
-        
+        # 가상의 trade_date 만들기        
         virtual_balance = get_current_balance() 
         merged_df = rec_df.merge(port_df, on = 'ticker_symbol', how='left', suffixes=('_rec','_port'))
         print(merged_df.head())
-        for index, row in merged_df.iterrows():
+        for _, row in merged_df.iterrows():
             temp_trade = TradeInput(
                 ticker_symbol = row['ticker_symbol'],
                 rec_id = row['id_rec'],                 # recommendation.id
@@ -151,38 +155,47 @@ def daily_stock_routine():
                 transaction_type= 'SELL',
             )
             virtual_balance = manager.calculate_virtual_balance(virtual_balance, temp_trade)
-        
-
     else:
         virtual_balance = manager.get_balance()
         print("There is No Sell Recommendation Today")
 
     print(f"virtual_balance = {virtual_balance}")
+
+
     # 루틴 6 : 매수 후보 정하기 
     buy_candidates = get_buy_candidate(virtual_balance)
 
+    analysis_list =[]
+    for can in buy_candidates:
+        analysis_obj = session.query(Analysis)\
+            .filter(Analysis.ticker_symbol == can)\
+            .order_by(desc(Analysis.date))\
+            .first()
+        
+        analysis_dict = {c.name: getattr(analysis_obj, c.name) for c in analysis_obj.__table__.columns}
+        analysis_list.append(analysis_dict)
+
+    print(f"analysis dict = {analysis_list[0]}")
+    print(f"analysis_list length = {len(analysis_list)}")
+    
     # 루틴 7 : 매수 조건 따지기
+    rec_buy = []
+    for analysis in analysis_list:
+        analysis_dict, buy_sign = validate_buy_strategy(analysis)
 
-
-    # rec_buy =[]
-    # for __, analysis in df_with_id.iterrows():
-    #     analysis_dict = analysis.to_dict()
-    #     analysis_dict, buy_signal = validate_buy_strategy(analysis_dict)
-    #     print(f"calculated for recommendation [{analysis_dict}]. result = [{buy_signal}]")
-
-    #     if buy_signal ==True:
-    #         print(f"analysis_dict = [{analysis_dict}]")
-    #         rec_buy.append(analysis_dict)
-
-    #     rec_df = pd.DataFrame(rec_buy)
-    #     save_buy_rec(rec_df)
+        if buy_sign == True:
+            print(f"buy_signal is True for [{analysis_dict}]")
+            rec_buy.append(analysis_dict)
+    
+    rec_df = pd.DataFrame(rec_buy)
+    save_buy_rec(rec_df)
 
     # # 루틴 4 : 디스코드 알림
-    # print("루틴 4 : 추천사항을 디스코드 알림으로 전송합니다.")
+    print("루틴 4 : 추천사항을 디스코드 알림으로 전송합니다.")
 
-    # send_recommendation_alerts()
+    send_recommendation_alerts()
 
-    # print(f"[{datetime.now()}] 루틴 실행 완료")
+    print(f"[{datetime.now()}] 루틴 실행 완료")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  
@@ -194,8 +207,8 @@ async def lifespan(app: FastAPI):
         daily_stock_routine,
         'cron',
         day_of_week='mon-sun',
-        hour=12,
-        minute=23,
+        hour=13,
+        minute=46,
         id="daily_routine"
     )
         # 'cron' : run the job periodically certain time(s) of day

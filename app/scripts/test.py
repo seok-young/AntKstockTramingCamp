@@ -115,32 +115,34 @@ if __name__ == '__main__':
    
 
     session = SessionLocal()
-    buy_candidates=get_current_holdings()
-    rec_sell = []
-    portfolio_list =[]
+    manager = TradeManager(session)
+    balance=manager.get_balance()
+    buy_candidates = get_buy_candidate(balance)
+    print(f"buy candidates = {buy_candidates}")
+
+    analysis_list =[]
     for can in buy_candidates:
-        analysis_res=session.query(Analysis)\
+        analysis_obj = session.query(Analysis)\
             .filter(Analysis.ticker_symbol == can)\
             .order_by(desc(Analysis.date))\
-            .limit(2)\
-            .all()
-
-        portfolio_obj=session.query(Portfolio)\
-            .filter(Portfolio.ticker_symbol == can)\
             .first()
+        
+        analysis_dict = {c.name: getattr(analysis_obj, c.name) for c in analysis_obj.__table__.columns}
+        analysis_list.append(analysis_dict)
 
-        portfolio_dict = {c.name: getattr(portfolio_obj, c.name) for c in portfolio_obj.__table__.columns}
+    print(f"analysis dict = {analysis_list[0]}")
+    print(f"analysis_list length = {len(analysis_list)}")
 
-    if len(analysis_res) >= 2:
-        analysis_today = analysis_res[0]
-        analysis_yes = analysis_res[1]
+    # 루틴 7 : 매수 조건 따지기
+    rec_buy = []
+    for analysis in analysis_list:
+        analysis_dict, buy_sign = validate_buy_strategy(analysis)
 
-        analysis_today_dict = {c.name: getattr(analysis_today, c.name) for c in analysis_today.__table__.columns}
-        analysis_yes_dict = {c.name: getattr(analysis_yes, c.name) for c in analysis_yes.__table__.columns}
-    else:
-        print("Not Enough Analysis Data For recommendation")
-
-    print(f"analysis_today_dict = {analysis_today_dict}")
-    print(f"analysis_yes_dict = {analysis_yes_dict}")
-    print(f"portfolio_dict = {portfolio_dict}")
+        if buy_sign == True:
+            print(f"buy_signal is True for [{analysis_dict}]")
+            rec_buy.append(analysis_dict)
+    
+    rec_df = pd.DataFrame(rec_buy)
+    save_buy_rec(rec_df)
+    
   
