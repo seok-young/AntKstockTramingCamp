@@ -60,26 +60,27 @@ def validate_buy_strategy(analysis_dict):
     * 보조 조건은 나중에 활용 예정
 
     <필수>
-    1. 주가 < 20일 이평선 하향 돌파 (한 달 추세 무너짐)
-    2. MACD 선 < 시그널 선 (데드크로스 발생)
-    3. 현재가 < 매수가 * 0.93 (기계적 -7% 손절선, 강제손절선)
+    1. 주가 < 20일 이평선 하향 돌파 후 유지(한 달 추세 무너짐)
+    2. 주가가 볼린터 밴드 상단 터치후 재진입 (데드크로스 발생)
+    3. 현재가 < 매수가 * 0.90 (기계적 -10% 손절선, 강제손절선)
 
     <보조>
     1. 볼린저 밴드: 주가가 상단 밴드 터치 후 재진입
     2. RSI: 75 이상 (단기 과열로 인한 매도 알림)
 """
-def validate_sell_strategy(analysis_dict, portfolio_dict):
+def validate_sell_strategy(today_dict, yesterday_dict, portfolio_dict):
     sell_signal = False
-    requires =[
-        analysis_dict['close_price'] < analysis_dict['ma20'],
-        analysis_dict['macd'] < analysis_dict['macd_signal'],
-        analysis_dict['close_price'] < (portfolio_dict['buy_price'] * 0.93)
-    ]
+    
+    break_ma20 = (yesterday_dict['close_price'] >= yesterday_dict['ma20']) and (today_dict['close_price'] < today_dict['ma20'])
+    reenter_bb_upper = (yesterday_dict['close_price'] >= yesterday_dict['bb_upper']) and (today_dict['close_price'] < today_dict['bb_upper'])
+    stop_loss = today_dict['close_price'] < (portfolio_dict['buy_price']*0.9)
+
+    requires = [break_ma20, reenter_bb_upper, stop_loss]
 
     if any(requires):
         sell_signal = True
 
-    return analysis_dict, sell_signal
+    return today_dict, sell_signal
 
 # 처음 recommend DB 저장
 def save_bulk_buy_rec(analysis_dict):

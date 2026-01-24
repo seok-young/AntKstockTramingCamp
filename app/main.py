@@ -33,7 +33,11 @@ from app.service.recommend import (
 
 from app.service.notify import send_recommendation_alerts
 
-from app.service.scanner import get_current_holdings, get_current_balance
+from app.service.scanner import (
+    get_current_holdings, 
+    get_current_balance,
+    get_buy_candidate
+)
 
 from app.service.trade_manager import TradeManager
 
@@ -45,7 +49,7 @@ to-do
 0. 데이터 수집 V
 1. 매도 후보 정하기 V
 2. 매도 후보 자격 검증 V
-3. 가상정산
+3. 가상정산 V
 4. 매수 후보 정하기
 5. 매수 후보 자격 검증
 6. 통합(매수 + 매도) 알림 정산
@@ -73,58 +77,92 @@ def daily_stock_routine():
 
     #--------------------------------------------------------------------#
     
-    # 루틴 3 : 매도 후보 정하기
-    buy_candidates=get_current_holdings()
-
-    # 루틴 4 : 매도 조건 따져보기
-    rec_sell = []
+    # 루틴 3 : 매도 후보 불러오기
+    sell_candidates=get_current_holdings()
+    
+    rec_sell =[]
     portfolio_list =[]
-    for can in buy_candidates:
+
+    work_queue = []
+    for can in sell_candidates:
         
-        analysis_obj=session.query(Analysis)\
+        analysis_res=session.query(Analysis)\
             .filter(Analysis.ticker_symbol == can)\
             .order_by(desc(Analysis.date))\
-            .first()
+            .limit(2)\
+            .all()
 
         portfolio_obj=session.query(Portfolio)\
             .filter(Portfolio.ticker_symbol == can)\
             .first()
         
-        # dict로 변환
-        analysis_dict = {c.name: getattr(analysis_obj, c.name) for c in analysis_obj.__table__.columns}
-        portfolio_dict = {c.name: getattr(portfolio_obj, c.name) for c in portfolio_obj.__table__.columns}
-        portfolio_list.append(portfolio_dict)
+        if (len(analysis_res) >= 2) and (portfolio_obj) :
+            analysis_today = analysis_res[0]
+            analysis_yes = analysis_res[1]     
+            
+            # dict로 변환
+            analysis_today_dict = {c.name: getattr(analysis_today, c.name) for c in analysis_today.__table__.columns}
+            analysis_yes_dict = {c.name: getattr(analysis_yes, c.name) for c in analysis_yes.__table__.columns}
+            portfolio_dict = {c.name: getattr(portfolio_obj, c.name) for c in portfolio_obj.__table__.columns}
 
-        analysis_dict, sell_signal = validate_sell_strategy(analysis_dict, portfolio_dict)
+            work_queue.append({
+                'today':analysis_today_dict,
+                'yesterday':analysis_yes_dict,
+                'portfolio':portfolio_dict                
+            })
+            print(f"work_queue length : {len(work_queue)}")
+            print(f"work_queue : {work_queue[0]}")
+        else:
+            print("Not Enough Analysis Data For Sell_recommendation")
+
+
+
+    # 루틴 4 : 매도 조건 따져보기(매도 조건 수정하기!!!)
+    rec_sell =[]
+    portfolio_list =[]    
+    for work in  work_queue:
+        analysis_dict, sell_signal = validate_sell_strategy(work['today'], work['yesterday'], work['portfolio'])
         if sell_signal ==True:
             rec_sell.append(analysis_dict)
+            portfolio_list.append(work['portfolio'])
 
-        rec_df = pd.DataFrame(rec_sell)
-        port_df = pd.DataFrame(portfolio_list)
-        save_sell_rec(rec_df)       
-    
-
+    rec_df = pd.DataFrame(rec_sell)
+    port_df = pd.DataFrame(portfolio_list)
+        
     # 루틴 5 : 가상 정산
-    
-    # 가상의 trade_date 만들기
+    # 매도 추천이 있을때만
     manager = TradeManager(session)
-    virtual_balance = get_current_balance() 
-    merged_df = rec_df.merge(port_df, on = 'ticker_symbol', how='left', suffixes=('_rec','_port'))
-    print(merged_df.head())
-    for index, row in merged_df.iterrows():
-        temp_trade = TradeInput(
-            ticker_symbol = row['ticker_symbol'],
-            rec_id = row['id_rec'],                 # recommendation.id
-            qty = row['quantity'],                  # portfolio.quantity
-            price = row['price'],                   # recommendation.price
-            transaction_type= 'SELL',
-        )
-        virtual_balance = manager.calculate_virtual_balance(virtual_balance, temp_trade)
+    if not rec_df.empty:
+        print(f"DEBUG: rec_df columns -> {rec_df.columns.tolist()}")
+        print(f"DEBUG: port_df columns -> {port_df.columns.tolist()}")
+        save_sell_rec(rec_df)    
+
+        # 가상의 trade_date 만들기
+        
+        virtual_balance = get_current_balance() 
+        merged_df = rec_df.merge(port_df, on = 'ticker_symbol', how='left', suffixes=('_rec','_port'))
+        print(merged_df.head())
+        for index, row in merged_df.iterrows():
+            temp_trade = TradeInput(
+                ticker_symbol = row['ticker_symbol'],
+                rec_id = row['id_rec'],                 # recommendation.id
+                qty = row['quantity'],                  # portfolio.quantity
+                price = row['price'],                   # recommendation.price
+                transaction_type= 'SELL',
+            )
+            virtual_balance = manager.calculate_virtual_balance(virtual_balance, temp_trade)
+        
+
+    else:
+        virtual_balance = manager.get_balance()
+        print("There is No Sell Recommendation Today")
 
     print(f"virtual_balance = {virtual_balance}")
     # 루틴 6 : 매수 후보 정하기 
+    buy_candidates = get_buy_candidate(virtual_balance)
 
     # 루틴 7 : 매수 조건 따지기
+
 
     # rec_buy =[]
     # for __, analysis in df_with_id.iterrows():
@@ -157,7 +195,7 @@ async def lifespan(app: FastAPI):
         'cron',
         day_of_week='mon-sun',
         hour=12,
-        minute=20,
+        minute=23,
         id="daily_routine"
     )
         # 'cron' : run the job periodically certain time(s) of day

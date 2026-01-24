@@ -18,6 +18,9 @@ class TradeManager:
             return last_history.balance
         else:
             return 0.0
+        
+    def get_balance(self):
+        return self._get_latest_balance()
 
     """
 

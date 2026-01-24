@@ -69,12 +69,12 @@ def get_current_holdings():
 """"
 매수 대상
  - 포트폴리오에 담겨있지 않은 종목
- - 계좌의 잔액 이하인 종목
+ - 가상정산 후 잔액 혹은 계좌의 잔액 이하인 종목
 """
-def get_buy_candidate():
+def get_buy_candidate(balance):
     watchlist = set(get_watchlist())
     holdings = set(get_current_holdings())
-    balance = get_current_balance()
+    # balance = get_current_balance()
 
     # 포트폴리오에 담겨있지 않은 종목
     candidate = watchlist - holdings
@@ -85,6 +85,5 @@ def get_buy_candidate():
         price = get_latest_price(can)
         if price <= balance:
             final_candidate.append(can)
-
-
+            
     return final_candidate

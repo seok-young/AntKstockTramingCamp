@@ -1,5 +1,7 @@
 from datetime import datetime,date
 import pandas as pd
+from sqlalchemy import desc
+
 
 from app.service.analysis import (
     fetch_analysis,
@@ -30,10 +32,16 @@ from app.service.scanner import (
     get_current_holdings,
     get_watchlist,
     get_current_balance,
-    get_buy_candidate
+    get_buy_candidate,
+    get_current_holdings
+
 )
 
-from app.model import TradeInput
+from app.model import (
+    TradeInput,
+    Analysis,
+    Portfolio
+)
 from app.core.database import SessionLocal,Base,engine
 from app.core.config import settings
 
@@ -104,5 +112,35 @@ if __name__ == '__main__':
     #     except Exception as e:
     #         print(f"Error during executing trade [{e}]")
     #     # print(trade)
-    res = get_buy_candidate()
-    print(res)
+   
+
+    session = SessionLocal()
+    buy_candidates=get_current_holdings()
+    rec_sell = []
+    portfolio_list =[]
+    for can in buy_candidates:
+        analysis_res=session.query(Analysis)\
+            .filter(Analysis.ticker_symbol == can)\
+            .order_by(desc(Analysis.date))\
+            .limit(2)\
+            .all()
+
+        portfolio_obj=session.query(Portfolio)\
+            .filter(Portfolio.ticker_symbol == can)\
+            .first()
+
+        portfolio_dict = {c.name: getattr(portfolio_obj, c.name) for c in portfolio_obj.__table__.columns}
+
+    if len(analysis_res) >= 2:
+        analysis_today = analysis_res[0]
+        analysis_yes = analysis_res[1]
+
+        analysis_today_dict = {c.name: getattr(analysis_today, c.name) for c in analysis_today.__table__.columns}
+        analysis_yes_dict = {c.name: getattr(analysis_yes, c.name) for c in analysis_yes.__table__.columns}
+    else:
+        print("Not Enough Analysis Data For recommendation")
+
+    print(f"analysis_today_dict = {analysis_today_dict}")
+    print(f"analysis_yes_dict = {analysis_yes_dict}")
+    print(f"portfolio_dict = {portfolio_dict}")
+  
