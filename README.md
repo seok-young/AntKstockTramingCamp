@@ -9,7 +9,6 @@
 투자에 대한 감각을 키우실 수 있습니다.
 
 ※ 향후에는 자동 매매까지 구현하여 이용자의 자산을 운영하는 자동시스템까지 고도화할 예정입니다.  
-
 이용자가 원하는 매매 기준을 입력하면 그 기준에 따라 자동으로 투자하는 시스템 구현을 목표로 하고 있습니다.
 
 ## Key Features
@@ -25,6 +24,41 @@
 - Phase 5: 주가 분석 후보 종목 선정 로직
 
 ## Tech Stack
+### Backend
+- Python  
+  - 데이터 수집, 분석 로직 및 전체 비즈니스 로직 구현
+- FastAPI  
+  - 주가 분석 결과 및 추천 정보를 제공하는 API 서버
+
+### Data Processing & Analysis
+- pandas  
+  - 주가 데이터 전처리 및 지표 계산
+ 
+### Database
+- MySQL  
+  - 수집된 종가 데이터, 분석 결과, 투자 이력 저장
+- SQLAlchemy  
+  - ORM 기반 데이터베이스 모델링 및 접근
+    
+### Scheduling
+- APScheduler  
+  - 장 마감 후 종가 데이터 자동 수집 및 분석 스케줄링
+
+### Notification
+- Discord Webhook  
+  - 매수/매도 추천 결과 실시간 알림 전송
+
+### Infrastructure
+- Docker  
+  - 개발 및 실행 환경 통일
+- Docker Compose  
+  - API 서버 및 데이터베이스 구성 관리
+
+### Environment & Configuration
+- Pydantic  
+  - 환경 변수 및 요청 데이터 검증
+- python-dotenv  
+  - 환경 변수 관리
 
 
 ## Architecture
