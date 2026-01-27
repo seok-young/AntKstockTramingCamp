@@ -64,7 +64,7 @@ def daily_stock_routine():
     
     # 루틴 1 : 주가 수집 API
     stock_list = get_interest_stocksID()
-    total_df_list =[]
+   
 
     print(f"데이터를 수집합니다.")
     for stock in stock_list:
@@ -75,7 +75,7 @@ def daily_stock_routine():
 
 
     # 루틴 2 : 분석 및 저장
-    df_with_id=fetch_analysis()
+    fetch_analysis()
 
     #--------------------------------------------------------------------#
     
@@ -121,7 +121,7 @@ def daily_stock_routine():
     print(f"work_queue : {work_queue[0]}")
 
 
-    # 루틴 4 : 매도 조건 따져보기(매도 조건 수정하기!!!)
+    # 루틴 4 : 매도 조건 따져보기
     rec_sell =[]
     portfolio_list =[]    
     for work in  work_queue:

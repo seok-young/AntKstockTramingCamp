@@ -43,13 +43,13 @@ def get_latest_date_of_analysis():
 # 처음 DB에서 주가 불러오기
 def get_bulk_price(stock_code):
     # daily_price 테이블의 close_price의 절댓값을 불러옴
-    query = f"""
+    query = text("""
         SELECT ticker_symbol, date, ABS(close_price) as close_price
         FROM daily_price
-        WHERE ticker_symbol = '{stock_code}'
+        WHERE ticker_symbol = :stock_code
         ORDER BY date ASC
-    """
-    df = pd.read_sql(query, con=engine)
+""")
+    df = pd.read_sql(query, con=engine, params={"stock_code":stock_code})
 
     return df
 
@@ -57,16 +57,21 @@ def get_bulk_price(stock_code):
 def get_price(stock_code,start_date,current_date):
     target_start = pd.to_datetime(start_date)
     fetch_start = (target_start - timedelta(days=170)).strftime('%Y-%m-%d')
-    query = f"""
+    query = text("""
         SELECT ticker_symbol, date, ABS(close_price) as close_price
         FROM daily_price
-        WHERE ticker_symbol = '{stock_code}'
-            AND date BETWEEN '{fetch_start}' AND '{current_date}'
+        WHERE ticker_symbol = :stock_code
+            AND date BETWEEN :fetch_start AND :current_date
         ORDER BY date ASC
-        """
+    """)
     try:
-        df = pd.read_sql(query, engine)
+        df = pd.read_sql(query, con=engine, params={
+            "stock_code": stock_code,
+            "fetch_start": fetch_start,
+            "current_date": current_date
+        })
         return df
+    
     except Exception as e:
         print(f"Error during Gettig_price for analysis : [{e}]")
         return None
