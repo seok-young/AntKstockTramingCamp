@@ -6,7 +6,6 @@ import pandas as pd
 
 
 from app.core.database import SessionLocal,Base,engine
-
 from app.service.collector import preprocess_price_df,save_price_to_db
 
 

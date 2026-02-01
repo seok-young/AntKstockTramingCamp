@@ -1,8 +1,8 @@
 import pandas as pd
 
-
+from app.schemas import WatchlistCreate
 from app.core.database import SessionLocal,Base,engine
-from app.model import Watchlist
+from app.model import Watchlist as WatchlistModel
 from app.core.database import SessionLocal,Base,engine
 
 '''
@@ -28,13 +28,14 @@ def save_to_db_watchlist(watchlist_df):
     try:
         # 주식
         for _, row in watchlist_df.iterrows():
-            watchlist = Watchlist(
+            watchlist_in = WatchlistCreate(
                 asset_type=row['asset_type'],
                 ticker_symbol=row['ticker_symbol'],
                 is_watching=True,
                 removed_at=None
             )
-            session.add(watchlist)
+            watchlist_db = WatchlistModel(**watchlist_in.model_dump())            
+            session.add(watchlist_db)
         
         session.commit()
         print("Watchlist data saved to database successfully.")

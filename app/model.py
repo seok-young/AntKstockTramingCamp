@@ -3,7 +3,6 @@ from sqlalchemy import (
     BigInteger, Column, Integer, String,Boolean,Float,
     DateTime,Date,func,UniqueConstraint,CheckConstraint,ForeignKey)
 from datetime import datetime
-from pydantic import BaseModel
 
 from app.core.database import Base
 
@@ -143,15 +142,4 @@ class AccountHistory(Base):
         CheckConstraint('balance >= 0', name='check_balance_positive'),
     )
 
-# 현금 입력 구조 정의
-class CashInput(BaseModel):    
-    amount: float
-    transaction_type: str # 'DEPOSIT','WITHDRAWAL'
 
-# 매매 입력 구조 정의
-class TradeInput(BaseModel):
-    ticker_symbol: str
-    rec_id: int
-    qty: int
-    price: float
-    transaction_type: str # 'BUY','SELL'

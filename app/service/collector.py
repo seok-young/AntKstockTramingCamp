@@ -8,13 +8,7 @@ from app.core.database import SessionLocal,Base,engine
 from app.model import Watchlist as watchlist
 from app.model import DailyPrice as daily_price
 from app.core.config import settings
-"""
-TO-DO
-
- - DB에서 제일 최신의 날짜 확인하고 그 이후의 데이터 수집 
- - 불러온 주가 데이터 -> df로
-
-"""
+from app.schemas import DailyPriceCreate
 
 # 관심 종목 DB 조회 -> 리스트
 def get_interest_stocksID():
@@ -49,31 +43,31 @@ def get_latest_date(target_ticker):
 
 # 접근토큰 발급
 def fn_au10001(grant_type='client_credentials', appkey=settings.APP_KEY, secretkey=settings.SECRET_KEY):
-	# 1. 요청할 API URL
-	host = 'https://api.kiwoom.com' # 실전투자
-	endpoint = '/oauth2/token'
-	url =  host + endpoint
+    # 1. 요청할 API URL
+    host = 'https://api.kiwoom.com' # 실전투자
+    endpoint = '/oauth2/token'
+    url =  host + endpoint
 
-	# 2. header 데이터
-	headers = {
-	    'Content-Type': 'application/json;charset=UTF-8', # 컨텐츠타입
-	}
+    # 2. header 데이터
+    headers = {
+        'Content-Type': 'application/json;charset=UTF-8', # 컨텐츠타입
+    }
 
-	data = {
+    data = {
         "grant_type": grant_type,
         "appkey": appkey,
         "secretkey": secretkey
     }
 
-	# 3. http POST 요청
-	response = requests.post(url, headers=headers, json=data, timeout=10)
-	
-	if response.status_code == 200:
-		access_token = response.json().get('token')
-		return access_token
-	else:
-		print('error:', response.status_code)
-		
+    # 3. http POST 요청
+    response = requests.post(url, headers=headers, json=data, timeout=10)
+    
+    if response.status_code == 200:
+        access_token = response.json().get('token')
+        return access_token
+    else:
+        print('error:', response.status_code)
+        
 # 주가 수집
 def fn_ka10086(token, data, cont_yn='N', next_key=''):
     host = 'https://api.kiwoom.com'  # 실전투자
@@ -149,10 +143,19 @@ def save_bulk_price_to_db(df):
     Base.metadata.create_all(bind=engine)
     session = SessionLocal()
     try:
-        data_list = df.to_dict(orient='records')
-        session.bulk_insert_mappings(daily_price,data_list)
-        session.commit()
-        print("Success Uploading price_df to DB")
+        data_list = []
+        for row in df.to_dict(orient='records'):
+            try:
+                validated_data = DailyPriceCreate(**row)
+                data_list.append(validated_data.model_dump())
+            except Exception as ve:
+                print(f"Error during validating price data [{ve}]")
+                continue
+        
+        if data_list:
+            session.bulk_insert_mappings(daily_price,data_list)
+            session.commit()
+            print("Success Uploading price_df to DB")
     except Exception as e:
         session.rollback()
         print(f"Error: {e}")
@@ -164,12 +167,25 @@ def save_bulk_price_to_db(df):
 def save_price_to_db(df):
     session = SessionLocal()
     try:
-        data_list = df.to_dict(orient = 'records')
+        data_list = []
+        # data_list = df.to_dict(orient = 'records')
+        for row in df.to_dict(orient='record'):
+            try:
+                valid_row = DailyPriceCreate(**row)
+                data_list.append(valid_row.model_dump())
+            except Exception as ve:
+                print(f"Error during validating price data [{ve}]")
+                continue
+
+        if not data_list:
+            return
 
         query = text("""
             INSERT IGNORE INTO daily_price
-            (ticker_symbol, date, open_price, high_price, low_price, close_price, trde_qty, created_at, updated_at)
-            VALUES(:ticker_symbol, :date, :open_price, :high_price, :low_price, :close_price, :trde_qty, :created_at, :updated_at)
+            (ticker_symbol, date, open_price, high_price, low_price, 
+                     close_price, trde_qty, created_at, updated_at)
+            VALUES(:ticker_symbol, :date, :open_price, :high_price, 
+                     :low_price, :close_price, :trde_qty, :created_at, :updated_at)
         """)
 
         session.execute(query, data_list)

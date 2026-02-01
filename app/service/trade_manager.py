@@ -2,7 +2,7 @@ from sqlalchemy import desc
 from datetime import datetime
 
 from app.model import Portfolio,AccountHistory
-
+from app.schemas import PortfolioCreate, AccountHistoryCreate
 
 class TradeManager:
     def __init__(self, session):
@@ -40,14 +40,14 @@ class TradeManager:
             new_balance = cur_balance + amount_change
             now = datetime.now()
 
-            history = AccountHistory(
+            history_in = AccountHistoryCreate(
                 transaction_type=data['transaction_type'],
                 amount=amount_change,
                 balance=new_balance,
-                transaction_date=now
-
+                transaction_date=datetime.now()
             )
 
+            history = AccountHistory(**history_in.model_dump())
             self.session.add(history)
             self.session.commit()
 
@@ -108,25 +108,27 @@ class TradeManager:
         now = datetime.now()
 
         # Portfolio
-        new_port = Portfolio(
-            ticker_symbol = data.ticker_symbol,
-            recommendation_id = data.rec_id,
-            quantity = data.qty,
-            buy_price = data.price,
-            buy_date = now,
-            is_active = 1
-        )
+        port_in = PortfolioCreate(
+        ticker_symbol=data.ticker_symbol,
+        recommendation_id=data.rec_id,
+        quantity=data.qty,
+        buy_price=data.price,
+        buy_date=now,
+        is_active=1
+    )
+        new_port = Portfolio(**port_in.model_dump())
         self.session.add(new_port)
         self.session.flush()
 
         # Account History
-        history = AccountHistory(
-            portfolio_id = new_port.id,
+        history_in = AccountHistoryCreate(
+            portfolio_id=new_port.id,
             transaction_type='BUY',
-            amount = amount_change,
-            balance = new_balance,
-            transaction_date = now
+            amount=amount_change,
+            balance=new_balance, 
+            transaction_date=now
         )
+        history = AccountHistory(**history_in.model_dump())
         self.session.add(history)
     
     def _handle_sell(self, data, new_balance, amount_change):
@@ -140,18 +142,24 @@ class TradeManager:
         if not port:
             raise Exception("매도할 포트폴리오를 찾을 수 없습니다.")
 
-        port.sell_price = data['price']
-        port.sell_date = now
-        port.is_active = 0
+        port_in = PortfolioCreate.model_validate(port)
+        port_in.sell_price = data['price']
+        port_in.sell_date = now
+        port_in.is_active = 0
+
+        port.sell_price = port_in.sell_price
+        port.sell_date = port_in.sell_date
+        port.is_active = port_in.is_active
 
         # Account History
-        history = AccountHistory(
-            portfolio_id = port.id,
+        history_in = AccountHistoryCreate(
+            portfolio_id=port.id,
             transaction_type='SELL',
-            amount = amount_change,
-            balance = new_balance,
-            transaction_date = now
+            amount=amount_change,
+            balance=new_balance,
+            transaction_date=now
         )
+        history = AccountHistory(**history_in.model_dump())
         self.session.add(history)
 
     """

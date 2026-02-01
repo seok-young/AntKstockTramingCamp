@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 import os
 import traceback
 
+from app.schemas import TickerCreate
 from app.core.config import settings
 from app.model import Ticker
 from app.core.database import SessionLocal,Base,engine
@@ -20,7 +21,7 @@ def save_to_db(df):
     session = SessionLocal()
     try:
         for _, row in df.iterrows():
-            ticker_stock = Ticker(
+            ticker_data = TickerCreate(
                 symbol_origin=row['symbol_origin'],
                 symbol=row['symbol'],
                 name_kor=row['name_kor'],                
@@ -29,6 +30,7 @@ def save_to_db(df):
                 date_listing=row['date_listing'],
                 total_shares=row['shares_listed'],
             )
+            ticker_stock = Ticker(**ticker_data.model_dump())
             session.add(ticker_stock)
         session.commit()
     except Exception as e:
@@ -44,7 +46,7 @@ def save_to_db_etf(df):
     session = SessionLocal()
     try:
         for _, row in df.iterrows():
-            ticker_etf = Ticker(
+            ticker_data = TickerCreate(
                 symbol_origin=row['symbol_origin'],
                 symbol=row['symbol'],
                 name_kor=row['name_kor'],
@@ -53,6 +55,7 @@ def save_to_db_etf(df):
                 date_listing=row['date_listing'],                
                 total_shares=row['shares_outstanding'],
             )
+            ticker_etf = Ticker(**ticker_data.model_dump())
             session.add(ticker_etf)
         session.commit()
     except Exception as e:

@@ -5,7 +5,7 @@ from sqlalchemy import text, desc
 
 from app.core.database import SessionLocal,Base,engine
 from app.model import Analysis, Watchlist
-
+from app.schemas import AnalysisCreate
 
 # 관심 종목 리스트 불러오기
 def get_target_stocksList():
@@ -168,10 +168,20 @@ def save_bulk_analysis_to_DB(df):
     Base.metadata.create_all(bind=engine)
     session=SessionLocal()
     try:
-        data_list = final_df.to_dict(orient='records')
-        session.bulk_insert_mappings(Analysis, data_list)
-        session.commit()
-        print("Success Uploading analysis_df to DB")
+        data_list = []
+        for row in final_df.to_dict(orient='records'):
+            try:
+                valid_row = AnalysisCreate(**row)
+                data_list.append(valid_row.model_dump())
+            except Exception as ve:
+                print(f"Error during validating analysis data [{ve}]")
+                continue
+        
+        if data_list:
+            session.bulk_insert_mappings(Analysis, data_list)
+            session.commit()
+            print("Success Uploading analysis_df to DB")
+
     except Exception as e:
         session.rollback()
         print(f"Error : {e}")
@@ -184,7 +194,17 @@ def save_analysis_to_db(analysis_df):
     session = SessionLocal()
     try:
         analysis_df = analysis_df.replace({np.nan:None})
-        analysis_dict = analysis_df.to_dict('records')
+
+        data_list =[]
+        for row in analysis_df.to_dict('records'):
+            try:
+                valid_row = AnalysisCreate(**row)
+                data_list.append(valid_row.model_dump())
+       
+            except Exception as ve:
+                print(f"Error during validating analysis data [{ve}]")
+                continue
+                
         # 1. INSERT IGNORE 쿼리 작성 (테이블의 unique 제약 조건에 걸리면 무시)
         insert_query = text("""
             INSERT IGNORE INTO analysis 
@@ -192,7 +212,7 @@ def save_analysis_to_db(analysis_df):
             VALUES (:ticker_symbol, :date, :close_price, :ma5, :ma20, :ma60, :ma120, :macd, :macd_signal, :macd_hist, :rsi, :bb_middle, :bb_upper, :bb_lower)
         """)
         
-        session.execute(insert_query, analysis_dict)
+        session.execute(insert_query, data_list)
         session.commit()
 
         target_date = analysis_df['date'].unique().tolist()

@@ -5,6 +5,7 @@ from sqlalchemy import desc,text
 
 from app.core.database import SessionLocal,Base,engine
 from app.model import Analysis,Recommendation
+from app.schemas import RecommendationCreate
 
 # analysis 테이블에서 최신 데이터 조회
 def get_recent_analysis(stock_id):
@@ -87,13 +88,15 @@ def save_bulk_buy_rec(analysis_dict):
     Base.metadata.create_all(bind=engine)
     session = SessionLocal()
     try: 
-        new_rec = Recommendation(
-            ticker_symbol = analysis_dict['ticker_symbol'],
-            analysis_id = analysis_dict['id'],
-            signal_type = "BUY",
-            price = analysis_dict['close_price'],
-            base_date = analysis_dict['date'],
-    )
+        rec_in = RecommendationCreate(
+            ticker_symbol=analysis_dict['ticker_symbol'],
+            analysis_id=str(analysis_dict['id']), # String(10) 제약 확인
+            signal_type="BUY",
+            price=analysis_dict['close_price'],
+            base_date=analysis_dict['date']
+        )
+
+        new_rec = Recommendation(**rec_in.model_dump())
         session.add(new_rec)
         session.commit()
         print(f"saved buy rec successfully -> analysis_id : {analysis_dict['id']}")
@@ -111,22 +114,29 @@ def save_buy_rec(df):
         return
     session = SessionLocal()
     try: 
+        data_list = []
+        for __, row in df.iterrows():
+            try:
+                rec_in = RecommendationCreate(
+                    ticker_symbol=row['ticker_symbol'],
+                    analysis_id=str(row['id']),
+                    signal_type="BUY",
+                    strategy_name="BASIC",
+                    price=row['close_price'],
+                    base_date=row['date']
+                )
+                data_list.append(rec_in.model_dump())
+            except Exception as ve:
+                print(f"Error during validating buy recommendation [{ve}]")
+                continue
+        if not data_list: return
 
         query = text("""
             INSERT IGNORE INTO recommendation 
             (ticker_symbol, analysis_id, signal_type, strategy_name, price, base_date, is_sent, create_at)
             VALUES (:ticker_symbol, :analysis_id, :signal_type, :strategy_name, :price, :base_date, 0, NOW())
         """)
-        for _, row in df.iterrows():
-            session.execute(query, {
-                'ticker_symbol': row['ticker_symbol'],
-                'analysis_id': row['id'], 
-                'signal_type': "BUY",
-                'strategy_name':"BASIC",
-                'price': row['close_price'],
-                'base_date': row['date']
-            })
-            
+        session.execute(query, data_list)            
         session.commit()
         print(f"Successfully saved {len(df)} recommendations.")
 
@@ -142,22 +152,31 @@ def save_sell_rec(df):
         print(f"새로운 recommendation이 없습니다.")
         return
     session = SessionLocal()
-    try:         
+    try:        
+        data_list = []
+        for __, row in df.iterrows():
+            try:
+                rec_in = RecommendationCreate(
+                    ticker_symbol=row['ticker_symbol'],
+                    analysis_id=str(row['id']),
+                    signal_type="SELL",
+                    strategy_name="BASIC",
+                    price=row['close_price'],
+                    base_date=row['date']
+                )
+                data_list.append(rec_in.model_dump())
+            except Exception as ve:
+                print(f"Error during validating sell recommendation [{ve}]")
+                continue
+        if not data_list: return
+
         query = text("""
             INSERT IGNORE INTO recommendation 
             (ticker_symbol, analysis_id, signal_type, strategy_name, price, base_date, is_sent, create_at)
             VALUES (:ticker_symbol, :analysis_id, :signal_type, :strategy_name, :price, :base_date, 0, NOW())
         """)
-        for _, row in df.iterrows():
-            session.execute(query, {
-                'ticker_symbol': row['ticker_symbol'],
-                'analysis_id': row['id'], 
-                'signal_type': "SELL",
-                'strategy_name':"BASIC",
-                'price': row['close_price'],
-                'base_date': row['date']
-            })
-            
+        
+        session.execute(query, data_list)          
         session.commit()
         print(f"Successfully saved {len(df)} recommendations.")
 
