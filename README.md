@@ -23,6 +23,18 @@
 - Phase 4: 계좌 잔액 계산 및 포트폴리오 관리
 - Phase 5: 주가 분석 후보 종목 선정 로직
 
+## Directory Structure
+
+<img width="916" height="622" alt="image" src="https://github.com/user-attachments/assets/2ed62830-279b-4b2c-894e-ad72156db42c" />
+
+## Architecture
+<img width="974" height="683" alt="image" src="https://github.com/user-attachments/assets/988586b9-a973-460d-b040-dbf140a43ec7" />
+
+## ERD
+<img width="787" height="798" alt="image" src="https://github.com/user-attachments/assets/74a191b4-65a4-4a51-a7fa-273f28a704b5" />
+
+
+
 ## Tech Stack
 ### Backend
 - Python  
@@ -59,18 +71,6 @@
   - 환경 변수 및 요청 데이터 검증
 - python-dotenv  
   - 환경 변수 관리
-
-
-## Architecture
-<img width="974" height="683" alt="image" src="https://github.com/user-attachments/assets/988586b9-a973-460d-b040-dbf140a43ec7" />
-
-## ERD
-<img width="787" height="798" alt="image" src="https://github.com/user-attachments/assets/74a191b4-65a4-4a51-a7fa-273f28a704b5" />
-
-## Directory Structure
-
-<img width="916" height="622" alt="image" src="https://github.com/user-attachments/assets/2ed62830-279b-4b2c-894e-ad72156db42c" />
-
 
 ## Future Improvements
 ◻ 투자 전략 추가하여 전략별 수익률 비교  
