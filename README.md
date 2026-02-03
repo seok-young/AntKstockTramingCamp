@@ -68,7 +68,38 @@
 <img width="787" height="798" alt="image" src="https://github.com/user-attachments/assets/74a191b4-65a4-4a51-a7fa-273f28a704b5" />
 
 ## Directory Structure
+AntKstockTrainingCamp/
+├── app/
+│   ├── core/
+│   │   └── database/                             // DB 세션 설정값 정의
+│   ├── price_data/                               // 초기 데이터 적재를 위한 종가 데이터파일 (삭제예정)
+│   │   └── ........... 
+│   ├── scripts/                                  // 시스템 개발 중 테스트 스크립트 및 초기 데이터 크롤링 스크립트 (1차 개발 완료 시 삭제 예정)
+│   │   ├── crawling_prices.py                    
+│   │   ├── load_csv.py                           
+│   │   ├── load_stock_metadata.py                
+│   │   ├── load_watchlist.py                     
+│   │   ├── make_table.py                         
+│   │   ├── prices_to_DB.py                      
+│   │   ├── restAPI_test.py                       
+│   │   └── test.py                               
+│   ├── service/                                  // **시스템 비즈니스 레이어**
+│   │   ├── analysis.py                           // 종가 기반으로 투자 지표 계산 및 DB 저장
+│   │   ├── collector.py                          // 종가 수집
+│   │   ├── notify.py                             // 매매 추천 알림
+│   │   ├── recommend.py                          // 투자 지표 기반 매매 조건 판별
+│   │   ├── scanner.py                            // 관심 종목 중 추천 후보 조건 판별
+│   │   └── trade_manager.py                      // 매매 시 포트폴리오 데이터 반영 및 거래 금액 계좌 데이터 반영 
+│   └── utils/
+│       └── templates.py                          // 추천 알림 템플릿 
+├── data_0233_20251108.csv                        //  주식 메타데이터 (삭제예정)
+├── etf_data_1606_20251123.csv                    //  etf 메타데이터 (삭제예정)
+├── main.py                                       // 스케줄링 및 서비스 루틴
+├── model.py                                      // 데이터베이스 테이블 구조 정의
+├── schemas.py                                    // 요청·응답 및 도메인 데이터 구조 정의
+└── README.md
 
 ## Future Improvements
 ◻ 투자 전략 추가하여 전략별 수익률 비교  
-◻ 추천에 따른 자동 매매
+◻ 추천에 따른 자동 매매  
+◻ **최종 목표** : GCP(Google Cloud Platform) 24시간 배포 -> 스케쥴링을 통한 모든 시스템 자동화
