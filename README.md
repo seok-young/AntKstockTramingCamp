@@ -11,10 +11,8 @@
 ※ 향후에는 자동 매매까지 구현하여 이용자의 자산을 운영하는 자동시스템까지 고도화할 예정입니다.  
 이용자가 원하는 매매 기준을 입력하면 그 기준에 따라 자동으로 투자하는 시스템 구현을 목표로 하고 있습니다.
 
-## Key Features
- - 스케줄러 기반 자동 주식 데이터 수집 및 전처리
- - 전략 기반 매수/매도 로직 및 추천 알림
- - 전략 기반 투자 이력관리
+## Service Overview
+<img width="487" height="204" alt="image" src="https://github.com/user-attachments/assets/d14ee986-df10-40ad-8f12-3936de6d73b3" />
 
 ## Development Milestones
 - Phase 1: 종가 수집 및 DB저장 자동화
